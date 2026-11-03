@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cake Model Preview</title>
+<script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; background: #fbf4ee; font-family: system-ui, sans-serif; }
+  model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
+  p { position: fixed; left: 0; right: 0; bottom: 12px; text-align: center; color: #8a2c55; margin: 0; }
+</style>
+</head>
+<body>
+<model-viewer src="../assets/cake.glb" camera-controls auto-rotate shadow-intensity="1" exposure="1.05"
+              camera-orbit="35deg 62deg auto" tone-mapping="neutral"></model-viewer>
+<p>Drag to spin · scroll to zoom</p>
+</body>
+</html>

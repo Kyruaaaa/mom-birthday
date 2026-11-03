@@ -1,0 +1,8 @@
+Drop these files in this folder (exact names, or change them in CONFIG at the top of index.html's <script>):
+
+  birthday-song.mp3   your recorded birthday song (.m4a from Voice Memos works too - just change the name in CONFIG)
+  make-a-wish.mp3     "close your eyes and make a wish..." recording
+  cheer.mp3           (optional) a "yaaay!" when the lights come back on
+  me.png              you   - transparent background, cropped tight around the body, feet at the bottom edge
+  sister.png          your sister
+  cat.png             your cat

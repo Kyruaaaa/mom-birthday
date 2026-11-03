@@ -1,0 +1,1094 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Happy Birthday, Mom!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pink: #e75480;
+    --ink: #8a2c55;
+    --fx: 50vw; --fy: 50vh; --r: 0px;
+  }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    touch-action: none; user-select: none; -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    font-family: 'Fredoka', system-ui, -apple-system, sans-serif;
+  }
+  body { background: linear-gradient(#ffe3ec 0%, #fff1e6 60%, #ffe9d6 100%); }
+  body.forking { cursor: none; }
+
+  /* ---------- room ---------- */
+  #bunting { position: fixed; left: 0; top: 0; z-index: 1; pointer-events: none; overflow: visible; }
+  #table {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 2;
+    background: linear-gradient(#f9cfdc, #f0b5c8);
+    box-shadow: inset 0 5px 0 rgba(255,255,255,.55), 0 -2px 12px rgba(160,60,100,.12);
+  }
+  #table::before { /* scalloped tablecloth edge */
+    content: ''; position: absolute; left: 0; right: 0; top: -1px; height: 14px;
+    background: radial-gradient(circle at 12px 0, rgba(255,255,255,.6) 9px, transparent 10px) 0 0 / 24px 14px repeat-x;
+  }
+
+  /* ---------- characters (live behind the cake, clipped at the plate line) ---------- */
+  #chars { position: fixed; left: 0; top: 0; width: 100%; overflow: hidden; z-index: 5; pointer-events: none; }
+  .char { position: absolute; bottom: 0; transform-origin: 50% 100%; will-change: transform; opacity: 0; }
+  .char img { display: block; height: 100%; width: auto; filter: drop-shadow(0 6px 6px rgba(0,0,0,.18)); }
+  .char .ph { height: 100%; display: grid; place-items: end center; line-height: 1; }
+
+  /* ---------- cake ---------- */
+  #cake { position: fixed; z-index: 10; opacity: 0; transform-origin: 50% 80%; transform: scale(.25) translateY(25%); }
+  #cake.show { opacity: 1; transform: none; transition: transform 1s cubic-bezier(.34,1.56,.64,1), opacity .35s; }
+  #cake.instant { transition: none; }
+  #cake canvas { width: 100%; height: 100%; display: block; }
+
+  /* ---------- gift ---------- */
+  #gift { position: fixed; z-index: 30; cursor: pointer; }
+  #gift .wrap { position: absolute; inset: 0; animation: wobble 2.6s ease-in-out infinite; transform-origin: 50% 100%; }
+  #gift .wrap::after {
+    content: ''; position: absolute; left: 8%; right: 8%; bottom: -5%; height: 9%;
+    background: radial-gradient(ellipse, rgba(120,40,80,.25), transparent 70%); z-index: -1;
+  }
+  .gift-body {
+    position: absolute; left: 6%; width: 88%; top: 36%; height: 64%; border-radius: 8px;
+    background:
+      radial-gradient(circle, rgba(255,255,255,.35) 13%, transparent 14%) 0 0 / 20% 20%,
+      linear-gradient(90deg, #6c4ef2, #9c86ff 45%, #6c4ef2);
+    box-shadow: inset 0 -10px 0 rgba(0,0,0,.08);
+  }
+  .gift-lid {
+    position: absolute; left: 0; width: 100%; top: 22%; height: 16%; border-radius: 8px;
+    background: linear-gradient(90deg, #5b3ee6, #8c74ff 45%, #5b3ee6);
+    box-shadow: 0 5px 0 rgba(0,0,0,.12);
+  }
+  .gift-body::before, .gift-lid::before {
+    content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 15%; transform: translateX(-50%);
+    background: linear-gradient(90deg, #f2bd00, #ffe066 50%, #f2bd00);
+  }
+  .bow { position: absolute; left: 50%; bottom: 90%; width: 0; height: 0; }
+  .loop {
+    position: absolute; bottom: 0; box-sizing: border-box;
+    width: calc(var(--s) * .24); height: calc(var(--s) * .17);
+    border: calc(var(--s) * .045) solid #ffd23f; border-radius: 50%;
+  }
+  .loop.l { right: 0; transform-origin: 100% 100%; transform: rotate(-18deg); }
+  .loop.r { left: 0; transform-origin: 0 100%; transform: rotate(18deg); }
+  .knot {
+    position: absolute; width: calc(var(--s) * .09); height: calc(var(--s) * .08);
+    left: calc(var(--s) * -.045); bottom: calc(var(--s) * -.03); background: #f2bd00; border-radius: 40%;
+  }
+  .tap {
+    position: absolute; left: 50%; top: 106%; transform: translateX(-50%); white-space: nowrap;
+    font-size: clamp(18px, 4.6vw, 28px); color: var(--ink); font-weight: 600;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  #gift.open { pointer-events: none; }
+  #gift.open .wrap { animation: shake .35s linear; }
+  #gift.open .gift-lid { transform: translate(-25%, -190%) rotate(-32deg); opacity: 0; transition: transform .9s cubic-bezier(.2,.8,.3,1) .3s, opacity .6s .6s; }
+  #gift.open .gift-body { transform: translateY(35%) scale(.85); opacity: 0; transition: transform .7s ease-in .55s, opacity .5s .65s; }
+  #gift.open .tap { opacity: 0; transition: opacity .2s; animation: none; }
+  @keyframes wobble {
+    0%, 62%, 100% { transform: rotate(0) translateY(0); }
+    68% { transform: rotate(-5deg) translateY(-6%); }
+    74% { transform: rotate(5deg) translateY(-3%); }
+    80% { transform: rotate(-3deg); }
+    86% { transform: rotate(2deg); }
+  }
+  @keyframes shake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-6deg); } 75% { transform: rotate(6deg); } }
+  @keyframes pulse { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+
+  /* ---------- lights out ---------- */
+  #dark {
+    position: fixed; inset: 0; z-index: 20; pointer-events: none; opacity: 0; transition: opacity 1.6s ease;
+    background:
+      radial-gradient(circle at var(--fx) var(--fy), rgba(255,175,80,.22) 0px, rgba(255,150,60,.07) calc(var(--r) * .55), rgba(255,150,60,0) var(--r)),
+      radial-gradient(circle at var(--fx) var(--fy), rgba(10,5,18,0) 0px, rgba(10,5,18,.3) calc(var(--r) * .5), rgba(10,5,18,.66) var(--r), rgba(6,3,12,.95) calc(var(--r) * 2 + 1px));
+  }
+
+  /* ---------- candle flame ---------- */
+  #flameWrap { position: fixed; z-index: 25; width: 0; height: 0; pointer-events: none; }
+  #flame {
+    position: absolute; left: 0; bottom: 0; width: var(--fw); height: var(--fh); margin-left: calc(var(--fw) / -2);
+    transform-origin: 50% 92%; transform: scale(0);
+  }
+  #flame .outer {
+    position: absolute; inset: 0; border-radius: 50% 50% 50% 50% / 72% 72% 28% 28%;
+    background: radial-gradient(ellipse at 50% 78%, #fffbe0 0%, #ffd84d 32%, #ff9b1f 62%, rgba(255,80,0,0) 100%);
+    filter: blur(.6px);
+  }
+  #flame .core {
+    position: absolute; left: 28%; right: 28%; bottom: 9%; height: 46%;
+    border-radius: 50% 50% 50% 50% / 65% 65% 35% 35%;
+    background: radial-gradient(ellipse at 50% 72%, #fff 0%, #fffbe8 55%, rgba(255,255,220,0) 100%);
+  }
+  #flame .blue {
+    position: absolute; left: 30%; right: 30%; bottom: 0; height: 22%; border-radius: 50%;
+    background: radial-gradient(ellipse at 50% 60%, rgba(70,110,255,.85), rgba(70,110,255,0) 72%);
+  }
+  #halo {
+    position: absolute; width: var(--hw); height: var(--hw); left: calc(var(--hw) / -2); top: calc(var(--hw) / -2 - var(--fh) * .45);
+    border-radius: 50%; opacity: 0;
+    background: radial-gradient(circle, rgba(255,210,120,.5), rgba(255,160,60,.14) 38%, rgba(255,140,40,0) 70%);
+  }
+  #ember {
+    position: absolute; width: calc(var(--fw) * .35); height: calc(var(--fw) * .35); left: calc(var(--fw) * -.175); top: calc(var(--fw) * -.1);
+    border-radius: 50%; background: radial-gradient(circle, #ffd27a, #ff5a1a 55%, rgba(255,60,0,0) 75%); opacity: 0;
+  }
+  #ember.fade { transition: opacity 2.8s ease-in; }
+
+  /* ---------- particles / fork / text ---------- */
+  #fxc { position: fixed; inset: 0; z-index: 26; pointer-events: none; }
+  #fork { position: fixed; z-index: 40; pointer-events: none; opacity: 0; transform-origin: 50% 99.3%; transform: rotate(28deg); }
+  #fork.enter { transition: left 1s cubic-bezier(.2,.8,.3,1), top 1s cubic-bezier(.2,.8,.3,1), opacity .4s; }
+  #forkInner { position: absolute; inset: 0; transition: transform .12s ease-out; }
+  #forkInner.stab { transform: translateY(5%) scaleY(.97); transition-duration: .1s; }
+  #forkInner.lift { transform: translateY(-12%) rotate(-6deg); transition: transform .35s ease-out; }
+  #forkInner svg { width: 100%; height: 100%; display: block; filter: drop-shadow(3px 6px 4px rgba(0,0,0,.25)); }
+  #piece {
+    position: absolute; left: 6%; right: 6%; bottom: 3%; height: 15%; opacity: 0; transform: scale(.4);
+    border-radius: 40% 40% 30% 30%;
+    background: linear-gradient(#f37ba0 0 26%, #ffe8ef 26% 40%, #f0d29a 40% 62%, #e75480 62% 70%, #f0d29a 70%);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.08);
+    transition: opacity .15s, transform .15s;
+  }
+  #piece.on { opacity: 1; transform: scale(1); }
+
+  #caption {
+    position: fixed; left: 0; right: 0; top: calc(env(safe-area-inset-top, 0px) + 15vh); z-index: 50;
+    text-align: center; padding: 0 18px; pointer-events: none;
+    opacity: 0; transform: translateY(-10px); transition: opacity .8s, transform .8s, color .8s;
+    color: #fff4e0; text-shadow: 0 2px 14px rgba(0,0,0,.5);
+  }
+  #caption.show { opacity: 1; transform: none; }
+  #caption.light { color: var(--ink); text-shadow: 0 2px 0 rgba(255,255,255,.8); }
+  #caption .main { font-size: clamp(24px, 6vw, 44px); font-weight: 600; line-height: 1.15; }
+  #caption .sub { font-size: clamp(15px, 3.6vw, 20px); margin-top: 8px; opacity: .85; }
+
+  .nom {
+    position: fixed; z-index: 41; pointer-events: none; font-weight: 700; color: var(--pink);
+    font-size: clamp(20px, 5vw, 32px); text-shadow: 0 2px 0 #fff; transform: translate(-50%, -50%);
+    animation: nom .9s ease-out forwards;
+  }
+  @keyframes nom { from { opacity: 1; transform: translate(-50%, -50%) scale(.6); } to { opacity: 0; transform: translate(-50%, -190%) scale(1.15); } }
+
+  #card {
+    position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px;
+    opacity: 0; pointer-events: none; transition: opacity 1s;
+  }
+  #card.show { opacity: 1; pointer-events: auto; }
+  #card .box {
+    background: rgba(255,255,255,.94); border-radius: 26px; padding: 28px 26px 24px; max-width: min(88vw, 460px);
+    text-align: center; box-shadow: 0 20px 60px rgba(160,50,100,.3); transform: scale(.85); transition: transform 1s cubic-bezier(.34,1.56,.64,1);
+  }
+  #card.show .box { transform: none; }
+  #card h1 { font-family: 'Dancing Script', cursive; color: var(--pink); font-size: clamp(36px, 9vw, 56px); margin: 0 0 10px; line-height: 1.05; }
+  #card p { color: #6b3550; font-size: clamp(16px, 4vw, 20px); margin: 8px 0; line-height: 1.4; }
+  #card .sig { font-weight: 600; color: var(--ink); }
+  #card button {
+    margin-top: 14px; font: inherit; font-size: 16px; color: #fff; background: var(--pink); border: 0;
+    border-radius: 999px; padding: 10px 22px; cursor: pointer;
+  }
+
+  #meter { position: fixed; left: 12px; bottom: 12px; z-index: 70; width: 180px; font: 12px monospace; color: #fff; background: rgba(0,0,0,.6); padding: 8px; border-radius: 8px; display: none; }
+  #meter .bar { height: 8px; background: #333; margin: 4px 0; }
+  #meter .bar i { display: block; height: 100%; width: 0; background: #ffb347; }
+</style>
+</head>
+<body>
+
+<svg id="bunting"></svg>
+<div id="table"></div>
+<div id="chars"></div>
+
+<div id="cake"></div>
+
+<div id="gift">
+  <div class="wrap">
+    <div class="gift-body"></div>
+    <div class="gift-lid"><div class="bow"><i class="loop l"></i><i class="loop r"></i><i class="knot"></i></div></div>
+  </div>
+  <div class="tap">Tap to open 🎁</div>
+</div>
+
+<div id="dark"></div>
+<div id="flameWrap">
+  <div id="halo"></div>
+  <div id="flame"><div class="outer"></div><div class="core"></div><div class="blue"></div></div>
+  <div id="ember"></div>
+</div>
+<canvas id="fxc"></canvas>
+
+<div id="fork">
+  <div id="forkInner">
+    <svg viewBox="0 0 60 300">
+      <defs>
+        <linearGradient id="steel" x1="0" x2="1">
+          <stop offset="0" stop-color="#8f99a3"/><stop offset=".45" stop-color="#f5f8fb"/><stop offset="1" stop-color="#848d96"/>
+        </linearGradient>
+      </defs>
+      <g fill="url(#steel)" stroke="#78818a" stroke-width=".8">
+        <path d="M23,8 Q30,-2 37,8 L35,172 Q34,186 30,192 Q26,186 25,172 Z"/>
+        <path d="M30,184 Q46,198 48,232 L48,242 L12,242 L12,232 Q14,198 30,184 Z"/>
+        <rect x="12" y="236" width="5.5" height="62" rx="2.7"/>
+        <rect x="22.3" y="236" width="5.5" height="62" rx="2.7"/>
+        <rect x="32.3" y="236" width="5.5" height="62" rx="2.7"/>
+        <rect x="42.5" y="236" width="5.5" height="62" rx="2.7"/>
+      </g>
+    </svg>
+    <div id="piece"></div>
+  </div>
+</div>
+
+<div id="caption"><div class="main"></div><div class="sub"></div></div>
+
+<div id="card">
+  <div class="box">
+    <h1 id="cardTitle"></h1>
+    <p id="cardMsg"></p>
+    <p class="sig" id="cardSig"></p>
+    <button id="replay">Watch again ↺</button>
+  </div>
+</div>
+
+<div id="meter">mic level<div class="bar"><i id="mLevel"></i></div>blow progress<div class="bar"><i id="mAcc"></i></div><span id="mText"></span></div>
+
+<script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }
+</script>
+<!-- the 3D cake (made by model/build_cake.py), wrapped in JS so it also loads when opened straight from disk -->
+<script src="assets/cake-glb.js"></script>
+<script>
+/* =====================================================================
+   EDIT THESE ✏️
+   Put your files in the "assets" folder with these exact names
+   (or change the names here). Anything missing gets a stand-in so the
+   page still works while you're building it.
+   ===================================================================== */
+const CONFIG = {
+  momName: 'Mom',
+  finalMessage: 'Thank you for everything you do. We love you so, so much!',
+  signedBy: 'Love, me, sis & kitty 💕',
+
+  audio: {
+    song:  'assets/birthday-song.mp3',  // your recorded birthday song
+    wish:  'assets/make-a-wish.mp3',    // "close your eyes and make a wish…"
+    cheer: 'assets/cheer.mp3',          // optional: plays when the lights come back on
+  },
+  songBpm: 100,           // roughly how fast your song is; the dancing bounces to this beat
+
+  // size = height as a fraction of the cake, slot = -1 (far left) … 1 (far right)
+  characters: [
+    { src: 'assets/me.png',     fallback: '🙋‍♀️', size: 0.72, slot: -1,   delay: 0.0 },
+    { src: 'assets/sister.png', fallback: '💃',   size: 0.72, slot:  1,   delay: 0.5 },
+    { src: 'assets/cat.png',    fallback: '🐈',   size: 0.40, slot: 0.55, delay: 1.0 },
+  ],
+
+  blowSensitivity: 1.0,   // raise (e.g. 1.5) if the candle is hard to blow out, lower if it goes out too easily
+  pauseForWish: 3500,     // ms of quiet after the wish recording before asking her to blow
+};
+
+(() => {
+const q = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rand = (a, b) => a + Math.random() * (b - a);
+const easeInOut = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const params = new URLSearchParams(location.search);
+const DEBUG = params.has('debug');
+const el = {
+  cake: q('#cake'), gift: q('#gift'), chars: q('#chars'), table: q('#table'),
+  bunting: q('#bunting'), dark: q('#dark'), flameWrap: q('#flameWrap'), flame: q('#flame'),
+  halo: q('#halo'), ember: q('#ember'), cap: q('#caption'), fork: q('#fork'), forkInner: q('#forkInner'),
+  piece: q('#piece'), canvas: q('#fxc'), card: q('#card'),
+};
+const ctx2d = el.canvas.getContext('2d');
+let L = {};          // current layout numbers
+let now = 0;         // seconds, updated every frame
+
+/* ---------------- 3D cake ---------------- */
+// Bites are spheres where the cake surface is cut away; the inside of the cake shows through
+// (back faces get painted in the slice's "inside" colour, so a bite looks like solid cake).
+const MAXB = 112, SPHERES_PER_BITE = 7, MAX_BITES = MAXB / SPHERES_PER_BITE;
+const INSIDE = { Pizza: '#f2dfae', Oat: '#f6e6b8', Waffle: '#f8eed6', Basque: '#f6dc96' };
+const cake3d = { ready: false, spin: true, rotY: -0.75, fade: 0, bites: 0, samples: [] };
+let THREE, renderer, scene, camera, cakeRoot, flameAnchor, candleLight, raycaster;
+const eatable = [], biteSpheres = { value: [] }, biteCount = { value: 0 };
+
+function patchMat(m, insideHex) {
+  m = m.clone();
+  m.side = THREE.DoubleSide;
+  const inside = insideHex ? new THREE.Color(insideHex) : m.color.clone().multiplyScalar(0.85);
+  inside.convertLinearToSRGB();                         // written straight to the screen below
+  m.onBeforeCompile = sh => {
+    sh.uniforms.uBites = biteSpheres;
+    sh.uniforms.uBiteCount = biteCount;
+    sh.uniforms.uInside = { value: inside };
+    sh.vertexShader = 'varying vec3 vBiteP;\n' + sh.vertexShader.replace('#include <project_vertex>',
+      '#include <project_vertex>\n  vBiteP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = `#define MAXB ${MAXB}\nuniform vec4 uBites[MAXB];\nuniform int uBiteCount;\nuniform vec3 uInside;\nvarying vec3 vBiteP;\n` +
+      sh.fragmentShader
+        .replace('void main() {', `void main() {
+  for (int i = 0; i < MAXB; i++) {
+    if (i >= uBiteCount) break;
+    vec3 d = vBiteP - uBites[i].xyz;
+    if (dot(d, d) < uBites[i].w * uBites[i].w) discard;
+  }`)
+        .replace('#include <dithering_fragment>', `#include <dithering_fragment>
+  if (!gl_FrontFacing) {
+    float n = fract(sin(dot(floor(vBiteP * 70.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+    gl_FragColor = vec4(uInside * (0.84 + 0.12 * n), 1.0);
+  }`);
+  };
+  return m;
+}
+
+async function initCake3D() {
+  THREE = await import('three');
+  const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
+  biteSpheres.value = Array.from({ length: MAXB }, () => new THREE.Vector4());
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  el.cake.appendChild(renderer.domElement);
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
+  camera.position.set(0, 2.3, 4.75);
+  camera.lookAt(0, 0.3, 0);
+  camera.updateMatrixWorld();                // so proj() is right before the first render
+  scene.add(new THREE.HemisphereLight(0xfff6ee, 0xead8ce, 2.1));
+  const sun = new THREE.DirectionalLight(0xfff1e2, 1.9);
+  sun.position.set(-2.5, 4.5, 3);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.radius = 8;
+  sun.shadow.bias = -0.0008;
+  Object.assign(sun.shadow.camera, { left: -2, right: 2, top: 2, bottom: -2, near: 1, far: 12 });
+  scene.add(sun);
+  candleLight = new THREE.PointLight(0xffa24a, 0, 3.5, 1.6);
+  scene.add(candleLight);
+  raycaster = new THREE.Raycaster();
+
+  const bin = Uint8Array.from(atob(window.CAKE_GLB_BASE64), c => c.charCodeAt(0)).buffer;
+  const gltf = await new Promise((res, rej) => new GLTFLoader().parse(bin, '', res, rej));
+  cakeRoot = gltf.scene;
+  scene.add(cakeRoot);
+  flameAnchor = cakeRoot.getObjectByName('FlameAnchor');
+  cakeRoot.traverse(o => {
+    if (!o.isMesh) return;
+    o.castShadow = o.receiveShadow = true;
+    let chain = '';
+    for (let p = o; p; p = p.parent) chain += p.name + ' ';
+    if (/Plate/.test(chain)) { o.castShadow = false; return; }
+    const flavor = (chain.match(/Slice_(Pizza|Oat|Waffle|Basque)/) || [])[1];
+    const insideHex = flavor && !/Toppings/.test(chain) ? INSIDE[flavor] : null;
+    o.material = Array.isArray(o.material) ? o.material.map(m => patchMat(m, insideHex)) : patchMat(o.material, insideHex);
+    o.userData.inside = INSIDE[flavor] || '#f3e3c0';
+    eatable.push(o);
+  });
+  cake3d.ready = true;
+}
+
+function proj(v) {
+  const p = v.clone().project(camera);
+  return { x: L.cakeLeft + (p.x * 0.5 + 0.5) * L.C, y: L.top + (-p.y * 0.5 + 0.5) * L.C };
+}
+
+// keeps the flame, glow and character "floor" glued to the 3D cake
+function syncCakeScreen() {
+  if (!cake3d.ready) return;
+  const w = proj(flameAnchor.getWorldPosition(new THREE.Vector3()));
+  L.wickX = w.x; L.wickY = w.y;
+  el.flameWrap.style.left = w.x + 'px';
+  el.flameWrap.style.top = w.y + 'px';
+  const root = document.documentElement.style;
+  root.setProperty('--fx', w.x + 'px');
+  root.setProperty('--fy', w.y - L.C * 0.04 + 'px');
+}
+
+function renderCake(dt) {
+  if (!cake3d.ready) return;
+  if (cake3d.spin) cake3d.rotY += dt * 0.12;
+  cakeRoot.rotation.y = cake3d.rotY;
+  candleLight.position.copy(flameAnchor.getWorldPosition(new THREE.Vector3())).y += 0.05;
+  candleLight.intensity = F.size * 2.2 * (1 - F.blow * 0.5);
+  if (cake3d.fade > 0) {
+    cake3d.fade = Math.max(0, cake3d.fade - dt);
+    for (const o of eatable) for (const m of [].concat(o.material)) { m.opacity = cake3d.fade; }
+  }
+  renderer.render(scene, camera);
+  syncCakeScreen();
+}
+
+function insideBite(p, pad = 0) {
+  for (let i = 0; i < biteCount.value; i++) {
+    const s = biteSpheres.value[i];
+    if ((p.x - s.x) ** 2 + (p.y - s.y) ** 2 + (p.z - s.z) ** 2 < (s.w + pad) ** 2) return true;
+  }
+  return false;
+}
+
+// which bit of cake (if any) is under the fork tip
+function hitCake(x, y) {
+  const ndc = new THREE.Vector2(((x - L.cakeLeft) / L.C) * 2 - 1, -((y - L.top) / L.C) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  for (const h of raycaster.intersectObjects(eatable, false))
+    if (!insideBite(h.point, -0.01)) return { point: h.point, dir: raycaster.ray.direction.clone(), obj: h.object };
+  return null;
+}
+
+function addBite3D(hit) {
+  const R = 0.27, dir = hit.dir;
+  const c = hit.point.clone().addScaledVector(dir, 0.1);
+  const push = (p, r) => { biteSpheres.value[biteCount.value++].set(p.x, p.y, p.z, r); };
+  push(c, R);
+  const ref = Math.abs(dir.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+  const u = new THREE.Vector3().crossVectors(dir, ref).normalize();
+  const w = new THREE.Vector3().crossVectors(dir, u);
+  const rot = Math.random() * Math.PI * 2;
+  for (let k = 0; k < SPHERES_PER_BITE - 1; k++) {           // tooth-mark scallops around the rim
+    const a = rot + (k / (SPHERES_PER_BITE - 1)) * Math.PI * 2;
+    push(c.clone().addScaledVector(u, Math.cos(a) * R * 0.92).addScaledVector(w, Math.sin(a) * R * 0.92).addScaledVector(dir, -0.03), R * 0.36);
+  }
+  cake3d.bites++;
+  cake3d.samples = cake3d.samples.filter(p => !insideBite(p));
+}
+
+// random points inside the cake, used to tell how much is left
+function sampleCake() {
+  cakeRoot.updateMatrixWorld(true);
+  cake3d.samples = [];
+  while (cake3d.samples.length < 700) {
+    const x = rand(-1, 1), z = rand(-1, 1);
+    if (x * x + z * z > 1) continue;
+    cake3d.samples.push(new THREE.Vector3(x, rand(0, 0.6), z).applyMatrix4(cakeRoot.matrixWorld));
+  }
+  cake3d.total = cake3d.samples.length;
+}
+const cakeLeft = () => cake3d.total ? cake3d.samples.length / cake3d.total : 1;
+
+
+/* ---------------- characters ---------------- */
+const chars = CONFIG.characters.map((c, i) => {
+  const div = document.createElement('div');
+  div.className = 'char';
+  const ch = { cfg: c, i, el: div, aspect: 0.65, x: 0, y: 0, rot: 0, sx: 1, sy: 1,
+               state: 'hidden', t0: 0, phase: i * 1.3, h: 0, w: 0, targetX: 0, ph: null };
+  const img = new Image();
+  img.alt = '';
+  img.onload = () => { ch.aspect = img.naturalWidth / img.naturalHeight; layout(); };
+  img.onerror = () => {
+    img.remove();
+    ch.ph = document.createElement('div');
+    ch.ph.className = 'ph';
+    ch.ph.textContent = c.fallback;
+    div.appendChild(ch.ph);
+    ch.aspect = 1;
+    layout();
+  };
+  img.src = c.src;
+  div.appendChild(img);
+  el.chars.appendChild(div);
+  return ch;
+});
+
+let danceBeat = 60 / CONFIG.songBpm;
+let danceAmp = 1;
+
+function updateChar(ch) {
+  const { h } = ch;
+  let x = ch.targetX, y = 0, rot = 0, sx = 1, sy = 1, op = 1;
+  const t = now - ch.t0;
+  if (ch.state === 'hidden') { op = 0; x = 0; y = h; }
+  else if (ch.state === 'walk') {
+    const dur = 2.6, p = clamp(t / dur, 0, 1);
+    x = ch.targetX * easeInOut(p);
+    y = h * 0.92 * (1 - easeOut(clamp(p / 0.4, 0, 1)));     // climb out from behind the cake
+    const step = Math.sin(t * Math.PI * 4.4);
+    rot = step * 7;
+    y -= Math.abs(step) * h * 0.035;
+    if (p >= 1) { ch.state = 'dance'; ch.t0 = now; }
+  } else if (ch.state === 'dance') {
+    const b = t / danceBeat + ch.phase;
+    const move = Math.floor(b / 4 + ch.i) % 4, lb = b % 4, A = danceAmp;
+    if (move === 0) {           // bounce
+      y = -Math.abs(Math.sin(Math.PI * lb)) * h * 0.09 * A;
+      rot = Math.sin(Math.PI * lb) * 7 * A;
+    } else if (move === 1) {    // side-to-side sway
+      x += Math.sin(Math.PI * lb / 2) * L.C * 0.08 * A;
+      rot = Math.sin(Math.PI * lb) * 13 * A;
+      y = -Math.abs(Math.sin(Math.PI * lb)) * h * 0.03 * A;
+    } else if (move === 2) {    // spin + hop
+      sx = 1 + (Math.cos(Math.PI * lb / 2) - 1) * A;
+      y = -Math.abs(Math.sin(Math.PI * lb)) * h * 0.11 * A;
+    } else {                    // wiggle
+      rot = Math.sin(Math.PI * lb * 2) * 11 * A;
+      sy = 1 - Math.abs(Math.sin(Math.PI * lb)) * 0.07 * A;
+      sx = 1 + Math.abs(Math.sin(Math.PI * lb)) * 0.04 * A;
+    }
+  } else if (ch.state === 'idle') {
+    sy = 1 + Math.sin(now * 2.4 + ch.i) * 0.012;
+    rot = Math.sin(now * 1.1 + ch.i * 2) * 1.5;
+  } else if (ch.state === 'hop') {
+    const p = t / 0.75;
+    y = -Math.abs(Math.sin(Math.PI * 2 * p)) * h * 0.14;
+    rot = Math.sin(Math.PI * 2 * p) * 6;
+    if (p >= 1) ch.state = 'idle';
+  }
+  ch.el.style.opacity = op;
+  ch.el.style.transform = `translateX(-50%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) rotate(${rot.toFixed(2)}deg) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`;
+}
+function setChars(state) { chars.forEach(ch => { ch.state = state; ch.t0 = now; }); }
+function hopChars() { chars.forEach((ch, i) => { if (ch.state !== 'hidden' && ch.state !== 'walk') { ch.state = 'hop'; ch.t0 = now + i * 0.08; } }); }
+
+/* ---------------- layout ---------------- */
+function layout() {
+  const vw = innerWidth, vh = innerHeight;
+  const C = Math.min(vw * 0.74, vh * 0.5, 480);
+  const cx = vw / 2;
+  const top = Math.max(vh * 0.6 - C / 2, vh * 0.22);
+  L = { vw, vh, C, cx, top, cakeLeft: cx - C / 2, plateY: top + 0.83 * C, wickX: cx, wickY: top + 0.245 * C };
+  if (cake3d.ready) {
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    renderer.setSize(C, C, false);
+    L.plateY = proj(new THREE.Vector3(0, 0, 0)).y;      // characters stand level with the middle of the cake's base
+    syncCakeScreen();
+  }
+
+  Object.assign(el.cake.style, { left: cx - C / 2 + 'px', top: top + 'px', width: C + 'px', height: C + 'px' });
+  const G = C * 0.8;
+  Object.assign(el.gift.style, { left: cx - G / 2 + 'px', top: top + C * 0.82 - G + 'px', width: G + 'px', height: G + 'px' });
+  el.gift.style.setProperty('--s', G + 'px');
+  el.table.style.top = top + 0.7 * C + 'px';
+  el.chars.style.height = L.plateY + 'px';
+
+  const root = document.documentElement.style;
+  root.setProperty('--fw', C * 0.045 + 'px');
+  root.setProperty('--fh', C * 0.12 + 'px');
+  root.setProperty('--hw', C * 0.7 + 'px');
+
+  const big = Math.max(...chars.map(c => c.cfg.size * C * c.aspect));
+  const spread = Math.max(0, Math.min(vw / 2 - big / 2 - 6, 0.98 * C));
+  for (const ch of chars) {
+    ch.h = ch.cfg.size * C;
+    ch.w = ch.h * ch.aspect;
+    let x = ch.cfg.slot * spread;
+    const minAbs = 0.3 * C + ch.w * 0.3;               // don't hide completely behind the cake
+    if (Math.abs(x) < minAbs) x = Math.sign(ch.cfg.slot || 1) * minAbs;
+    ch.targetX = clamp(x, -(vw / 2 - ch.w * 0.35), vw / 2 - ch.w * 0.35);
+    ch.el.style.left = cx + 'px';
+    ch.el.style.height = ch.h + 'px';
+    if (ch.ph) ch.ph.style.fontSize = ch.h * 0.85 + 'px';
+  }
+
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  el.canvas.width = vw * dpr; el.canvas.height = vh * dpr;
+  el.canvas.style.width = vw + 'px'; el.canvas.style.height = vh + 'px';
+  ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  buildBunting();
+}
+
+function buildBunting() {
+  const vw = L.vw, text = ('HAPPY BIRTHDAY ' + CONFIG.momName).toUpperCase();
+  const n = text.length;
+  const fw = Math.min(46, (vw * 0.94) / n), fh = fw * 1.25;
+  const x0 = (vw - fw * n) / 2, y0 = 12, sag = Math.min(60, L.vh * 0.06);
+  const colors = ['#ff8fab', '#ffd23f', '#7cc6f6', '#7ee0a8', '#b28dff'];
+  const yAt = t => y0 + 4 * sag * t * (1 - t);
+  let html = `<path d="M0,${y0} Q${vw / 2},${y0 + 2 * sag} ${vw},${y0}" stroke="#c98aa3" stroke-width="2" fill="none"/>`;
+  for (let i = 0; i < n; i++) {
+    const xa = x0 + i * fw, xb = xa + fw, xm = xa + fw / 2;
+    const ya = yAt(xa / vw), yb = yAt(xb / vw), ym = yAt(xm / vw);
+    if (text[i] === ' ') continue;
+    html += `<path d="M${xa + 1},${ya} L${xb - 1},${yb} L${xm},${ym + fh} Z" fill="${colors[i % colors.length]}"/>`;
+    html += `<text x="${xm}" y="${ym + fh * 0.48}" font-size="${fw * 0.52}" font-family="Fredoka, sans-serif" font-weight="700" fill="#fff" text-anchor="middle">${text[i]}</text>`;
+  }
+  el.bunting.setAttribute('width', vw);
+  el.bunting.setAttribute('height', y0 + 2 * sag + fh + 10);
+  el.bunting.innerHTML = html;
+}
+
+/* ---------------- captions ---------------- */
+function say(main, sub = '', light = false) {
+  el.cap.querySelector('.main').textContent = main;
+  el.cap.querySelector('.sub').textContent = sub;
+  el.cap.classList.toggle('light', light);
+  el.cap.classList.add('show');
+}
+function saySub(sub) { el.cap.querySelector('.sub').textContent = sub; }
+function hush() { el.cap.classList.remove('show'); }
+
+/* ---------------- sound ---------------- */
+let actx = null;
+function ensureCtx() {
+  if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  if (actx.state === 'suspended') actx.resume();
+}
+const clips = {};
+for (const [key, src] of Object.entries(CONFIG.audio)) {
+  const a = new Audio();
+  a.preload = 'auto';
+  a.failed = false;
+  a.addEventListener('error', () => { a.failed = true; });
+  a.src = src;
+  clips[key] = a;
+}
+// Phones only let audio play after a tap, so "warm up" every clip on the first tap.
+function unlockClips() {
+  for (const a of Object.values(clips)) {
+    if (a.failed) continue;
+    a.muted = true;
+    const p = a.play();
+    if (p) p.then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; });
+  }
+}
+// Plays a clip and resolves when it ends; runs `fallback` instead if the file is missing.
+function playClip(key, fallback) {
+  return new Promise(resolve => {
+    const a = clips[key];
+    let done = false;
+    const finish = () => { if (!done) { done = true; resolve(); } };
+    const fb = () => { if (done) return; done = true; Promise.resolve(fallback && fallback()).then(resolve); };
+    if (!a || a.failed) return fb();
+    a.muted = false;
+    a.currentTime = 0;
+    a.onended = finish;
+    a.onerror = fb;
+    const p = a.play();
+    if (p) p.catch(fb);
+  });
+}
+
+function noiseBuffer(sec) {
+  const b = actx.createBuffer(1, actx.sampleRate * sec, actx.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return b;
+}
+function noiseBurst(t, dur, freq, q, vol) {
+  const src = actx.createBufferSource(); src.buffer = noiseBuffer(dur);
+  const f = actx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  src.connect(f).connect(g).connect(actx.destination); src.start(t);
+}
+function sfxIgnite() { if (!actx) return; const t = actx.currentTime; noiseBurst(t, 0.35, 2500, 0.8, 0.25); noiseBurst(t + 0.05, 0.5, 600, 0.6, 0.15); }
+function sfxPop() {
+  if (!actx) return;
+  const t = actx.currentTime, o = actx.createOscillator(), g = actx.createGain();
+  o.frequency.setValueAtTime(380, t); o.frequency.exponentialRampToValueAtTime(900, t + 0.12);
+  g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+  o.connect(g).connect(actx.destination); o.start(t); o.stop(t + 0.2);
+}
+function sfxMunch() {
+  if (!actx) return;
+  const t = actx.currentTime;
+  for (let i = 0; i < 3; i++) noiseBurst(t + i * 0.13 + rand(0, 0.03), 0.09, rand(900, 1800), 1.2, 0.35);
+}
+// Stand-in "Happy Birthday" (public-domain tune) until you add your own recording.
+function synthSong() {
+  ensureCtx();
+  const N = { G4: 392, A4: 440, B4: 493.88, C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99 };
+  const tune = [
+    ['G4',.75],['G4',.25],['A4',1],['G4',1],['C5',1],['B4',2],
+    ['G4',.75],['G4',.25],['A4',1],['G4',1],['D5',1],['C5',2],
+    ['G4',.75],['G4',.25],['G5',1],['E5',1],['C5',1],['B4',1],['A4',2],
+    ['F5',.75],['F5',.25],['E5',1],['C5',1],['D5',1],['C5',3],
+  ];
+  const beat = 0.55;
+  danceBeat = beat;
+  const out = actx.createGain(); out.gain.value = 0.22; out.connect(actx.destination);
+  let t = actx.currentTime + 0.1;
+  for (const [n, d] of tune) {
+    const len = d * beat;
+    for (const [type, mult, vol] of [['triangle', 1, 1], ['sine', 2, 0.25]]) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = type; o.frequency.value = N[n] * mult;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.02);
+      g.gain.setTargetAtTime(vol * 0.55, t + 0.05, 0.15);
+      g.gain.setTargetAtTime(0, t + len - 0.06, 0.03);
+      o.connect(g).connect(out); o.start(t); o.stop(t + len + 0.2);
+    }
+    t += len;
+  }
+  return sleep((t - actx.currentTime) * 1000 + 300);
+}
+
+/* ---------------- candle ---------------- */
+const F = { lit: false, size: 0, target: 0, blow: 0, acc: 0, canBlow: false, out: false, dying: false };
+let mic = null, holding = false, holdStart = 0;
+
+async function startMic() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } // keep the "whoosh" of a breath
+    });
+    ensureCtx();
+    const an = actx.createAnalyser();
+    an.fftSize = 1024;
+    actx.createMediaStreamSource(stream).connect(an);
+    mic = { stream, an, buf: new Float32Array(an.fftSize), calib: [], floor: null, t0: now };
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+function stopMic() { if (mic) { mic.stream.getTracks().forEach(t => t.stop()); mic = null; } }
+
+// 0..1 — how hard she's blowing right now
+function blowStrength() {
+  let s = 0;
+  if (mic) {
+    mic.an.getFloatTimeDomainData(mic.buf);
+    let sum = 0;
+    for (const v of mic.buf) sum += v * v;
+    const rms = Math.sqrt(sum / mic.buf.length);
+    if (mic.floor === null) {               // first ~0.7s: listen to the room's background noise
+      mic.calib.push(rms);
+      if (now - mic.t0 > 0.7) { mic.calib.sort((a, b) => a - b); mic.floor = mic.calib[mic.calib.length >> 1] || 0.005; }
+    } else {
+      const sens = CONFIG.blowSensitivity;
+      const thr = Math.max(mic.floor * 3, 0.012) / sens;
+      s = clamp((rms - thr) / (0.11 / sens), 0, 1);
+    }
+    mic.level = rms;
+  }
+  if (holding) s = Math.max(s, clamp((now - holdStart) * 1.8, 0, 1) * rand(0.85, 1));
+  return s;
+}
+
+let smoke = [], embers = 0;
+function updateFlame(dt) {
+  if (F.canBlow && !F.out) {
+    const s = blowStrength();
+    F.blow += (s - F.blow) * clamp(dt * 14, 0, 1);
+    if (F.blow > 0.28) F.acc += dt * (0.55 + F.blow);
+    else F.acc = Math.max(0, F.acc - dt * 0.5);
+    if (F.acc >= 1) blowOut();
+    if (DEBUG) {
+      q('#meter').style.display = 'block';
+      q('#mLevel').style.width = clamp(F.blow * 100, 0, 100) + '%';
+      q('#mAcc').style.width = clamp(F.acc * 100, 0, 100) + '%';
+      q('#mText').textContent = mic ? `rms ${(mic.level || 0).toFixed(3)} floor ${(mic.floor || 0).toFixed(3)}` : 'no mic';
+    }
+  }
+  if (F.dying) {
+    F.size = Math.max(0, F.size - dt * 6);
+    F.blow = 1;
+    if (F.size === 0) F.dying = false;
+  } else if (F.lit) {
+    F.size += (F.target - F.size) * clamp(dt * 3.5, 0, 1);
+  }
+
+  const t = now, b = F.blow;
+  const flick = 0.05 * Math.sin(t * 21) + 0.035 * Math.sin(t * 37 + 1) + 0.03 * (Math.random() - .5) + b * 0.12 * (Math.random() - .5);
+  const lean = 2.5 * Math.sin(t * 3.1) + 1.8 * Math.sin(t * 7.3) + b * (24 * Math.sin(t * 19) + 14 * Math.sin(t * 31) + 26);
+  const weak = 1 - clamp(F.acc, 0, 1) * 0.5;           // shrinks as she gets close to blowing it out
+  const sy = F.size * (1 + flick - b * 0.5) * weak;
+  const sx = F.size * (1 - flick * 0.6 - b * 0.12) * (0.7 + weak * 0.3);
+  el.flame.style.transform = `rotate(${lean.toFixed(1)}deg) scale(${Math.max(0, sx).toFixed(3)}, ${Math.max(0, sy).toFixed(3)})`;
+  const glow = F.size * clamp(1 + flick * 1.5 - b * 0.45, 0, 1.3) * weak;
+  el.halo.style.opacity = glow.toFixed(3);
+  document.documentElement.style.setProperty('--r', (L.C * 0.7 * glow).toFixed(1) + 'px');
+
+  if (embers > 0) {                    // keep puffing smoke after it goes out
+    embers -= dt;
+    if (Math.random() < dt * 14 * clamp(embers / 2, 0.2, 1)) {
+      smoke.push({ x: L.wickX + rand(-1, 1), y: L.wickY - L.C * 0.01, age: 0, max: rand(2.4, 3.6), seed: rand(0, 9), r: L.C * 0.012 });
+    }
+  }
+}
+
+function ignite() {
+  F.lit = true; F.target = 1; F.size = 0.05;
+  sfxIgnite();
+  for (let i = 0; i < 14; i++) {        // little spark
+    const a = rand(0, Math.PI * 2), v = rand(40, 140);
+    sparks.push({ x: L.wickX, y: L.wickY, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 60, age: 0, max: rand(.3, .6) });
+  }
+}
+
+let blowResolve = null;
+function blowOut() {
+  if (F.out) return;
+  F.out = true; F.lit = false; F.dying = true; F.canBlow = false; holding = false;
+  stopMic();
+  el.ember.classList.remove('fade');
+  el.ember.style.opacity = 1;
+  requestAnimationFrame(() => requestAnimationFrame(() => { el.ember.classList.add('fade'); el.ember.style.opacity = 0; }));
+  embers = 3;
+  if (blowResolve) blowResolve();
+}
+
+/* ---------------- particles (smoke, sparks, crumbs, confetti) ---------------- */
+let sparks = [], crumbs = [], confetti = [];
+const confColors = ['#ff6b9a', '#ffd23f', '#7cc6f6', '#7ee0a8', '#b28dff', '#ff9f43', '#ffffff'];
+function confettiBurst(x, y, n, power = 520) {
+  for (let i = 0; i < n; i++) {
+    const a = rand(-Math.PI * 0.9, -Math.PI * 0.1), v = rand(power * 0.4, power);
+    confetti.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, rot: rand(0, 6), vr: rand(-10, 10),
+      w: rand(6, 11), h: rand(4, 7), c: confColors[i % confColors.length], age: 0, max: rand(3, 5) });
+  }
+}
+function confettiRain(n) {
+  for (let i = 0; i < n; i++)
+    confetti.push({ x: rand(0, L.vw), y: rand(-L.vh * 0.6, -10), vx: rand(-30, 30), vy: rand(40, 160), rot: rand(0, 6), vr: rand(-8, 8),
+      w: rand(6, 11), h: rand(4, 7), c: confColors[i % confColors.length], age: 0, max: 7 });
+}
+
+function drawParticles(dt) {
+  const c = ctx2d;
+  c.clearRect(0, 0, L.vw, L.vh);
+
+  smoke = smoke.filter(p => (p.age += dt) < p.max);
+  for (const p of smoke) {
+    const k = p.age / p.max;
+    p.y -= L.C * 0.16 * dt * (1 - k * 0.4);
+    p.x += Math.sin(p.age * 2.6 + p.seed) * L.C * 0.03 * dt * (1 + k * 3);
+    const r = p.r * (1 + k * 5);
+    const g = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
+    const a = (k < .1 ? k / .1 : 1 - k) * 0.38;
+    g.addColorStop(0, `rgba(215,215,225,${a})`); g.addColorStop(1, 'rgba(215,215,225,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(p.x, p.y, r, 0, Math.PI * 2); c.fill();
+  }
+
+  sparks = sparks.filter(p => (p.age += dt) < p.max);
+  for (const p of sparks) {
+    p.vy += 300 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    c.fillStyle = `rgba(255,${200 + Math.random() * 55 | 0},120,${1 - p.age / p.max})`;
+    c.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+  }
+
+  crumbs = crumbs.filter(p => (p.age += dt) < p.max);
+  for (const p of crumbs) {
+    if (!p.rest) {
+      p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.y > p.floor) { p.y = p.floor; p.rest = true; }
+    }
+    c.globalAlpha = clamp((p.max - p.age) / 0.8, 0, 1);
+    c.fillStyle = p.c; c.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+  }
+  c.globalAlpha = 1;
+
+  confetti = confetti.filter(p => (p.age += dt) < p.max && p.y < L.vh + 30);
+  for (const p of confetti) {
+    p.vy += 420 * dt; p.vx *= 1 - dt * 1.2; p.vy = Math.min(p.vy, 260);
+    p.x += p.vx * dt + Math.sin(p.age * 5 + p.rot) * 20 * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
+    c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.scale(1, Math.cos(p.age * 7 + p.rot));
+    c.fillStyle = p.c; c.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); c.restore();
+  }
+}
+
+/* ---------------- fork & bites ---------------- */
+const fork = { on: false, x: 0, y: 0, busy: false, bites: 0, finished: false };
+function placeFork() {
+  const C = L.C, w = C * 0.13, h = C * 0.65;
+  Object.assign(el.fork.style, { width: w + 'px', height: h + 'px', left: fork.x - w / 2 + 'px', top: fork.y - h * 0.993 + 'px' });
+}
+async function bite() {
+  if (fork.busy || fork.finished) return;
+  fork.busy = true;
+  el.forkInner.classList.remove('lift');
+  el.forkInner.classList.add('stab');
+  await sleep(110);
+  const hit = cake3d.bites < MAX_BITES ? hitCake(fork.x, fork.y) : null;
+  if (hit) {
+    addBite3D(hit);
+    fork.bites++;
+    const inside = hit.obj.userData.inside;
+    sfxMunch();
+    el.piece.classList.add('on');
+    const floor = L.plateY + rand(-L.C * 0.03, L.C * 0.02);
+    for (let i = 0; i < 16; i++)
+      crumbs.push({ x: fork.x + rand(-10, 10), y: fork.y + rand(-6, 6), vx: rand(-140, 140), vy: rand(-260, -60), s: rand(2.5, 5.5),
+        c: [inside, inside, '#e2b46e', '#fff4f0', '#f3a0a0'][i % 5], age: 0, max: rand(2.5, 4), floor: floor + rand(-6, 6) });
+    const nom = document.createElement('div');
+    nom.className = 'nom';
+    nom.textContent = ['nom!', 'yum!', 'munch', '😋', 'mmm!', 'nom nom'][fork.bites % 6];
+    nom.style.left = fork.x + rand(-30, 30) + 'px'; nom.style.top = fork.y - L.C * 0.12 + 'px';
+    document.body.appendChild(nom);
+    setTimeout(() => nom.remove(), 1000);
+    hopChars();
+    if (fork.bites === 1) say('Mmm, delicious! 😋', 'Keep going…', true);
+  }
+  el.forkInner.classList.remove('stab');
+  el.forkInner.classList.add('lift');
+  await sleep(380);
+  el.piece.classList.remove('on');
+  el.forkInner.classList.remove('lift');
+  await sleep(80);
+  fork.busy = false;
+  if ((cakeLeft() < 0.45 || cake3d.bites >= MAX_BITES - 2) && !fork.finished) finale();
+}
+
+/* ---------------- input ---------------- */
+let tapResolve = null;
+addEventListener('pointerdown', e => {
+  if (tapResolve) { const r = tapResolve; tapResolve = null; r(); return; }
+  if (F.canBlow) { holding = true; holdStart = now; return; }
+  if (fork.on) {
+    fork.x = e.clientX; fork.y = e.clientY;
+    el.fork.classList.remove('enter');
+    placeFork();
+    bite();
+  }
+});
+addEventListener('pointermove', e => {
+  if (!fork.on) return;
+  if (e.pointerType === 'mouse' || e.buttons) {
+    el.fork.classList.remove('enter');
+    fork.x = e.clientX; fork.y = e.clientY; placeFork();
+  }
+});
+addEventListener('pointerup', () => { holding = false; });
+addEventListener('pointercancel', () => { holding = false; });
+addEventListener('resize', () => { layout(); if (fork.on) placeFork(); });
+
+/* ---------------- main loop ---------------- */
+let last = performance.now();
+function frame(ts) {
+  const dt = Math.min(0.05, (ts - last) / 1000);
+  last = ts; now = ts / 1000;
+  chars.forEach(updateChar);
+  updateFlame(dt);
+  renderCake(dt);
+  drawParticles(dt);
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- the story ---------------- */
+function showCake(instant) {
+  if (instant) el.cake.classList.add('instant');
+  el.cake.classList.add('show');
+}
+const waitTap = () => new Promise(r => { tapResolve = r; });
+
+async function stepGift() {
+  await waitTap();
+  ensureCtx();
+  unlockClips();
+  sfxPop();
+  el.gift.classList.add('open');
+  await sleep(550);
+  confettiBurst(L.cx, L.top + L.C * 0.45, 140);
+  showCake(false);
+  await sleep(1200);
+  el.gift.style.display = 'none';
+  await sleep(1300);
+}
+
+async function stepSong() {
+  el.dark.style.opacity = 1;              // lights out!
+  await sleep(1900);
+  ignite();
+  await sleep(1100);
+  const song = playClip('song', synthSong);
+  await sleep(500);
+  chars.forEach(ch => setTimeout(() => { ch.state = 'walk'; ch.t0 = now; }, ch.cfg.delay * 1000));
+  await song;
+  // ease the dancing to a stop
+  const t0 = now;
+  while (now - t0 < 0.8) { danceAmp = 1 - (now - t0) / 0.8; await sleep(16); }
+  setChars('idle'); danceAmp = 1;
+  await sleep(1000);
+}
+
+async function stepWish() {
+  say('Close your eyes and make a wish… ✨');
+  await playClip('wish', () => sleep(5500));
+  await sleep(CONFIG.pauseForWish);
+}
+
+async function stepBlow() {
+  say('Now blow out the candle! 🌬️', 'Blow toward the microphone');
+  const ok = await startMic();
+  if (!ok) saySub('(or press and hold anywhere on the screen to blow)');
+  F.canBlow = true;
+  const tip = setTimeout(() => { if (!F.out) saySub('Blow a little harder, right at the mic — or press & hold the screen'); }, 12000);
+  await new Promise(r => { blowResolve = r; });
+  clearTimeout(tip);
+  hush();
+  await sleep(2400);                       // a moment of darkness with the smoke curling up
+}
+
+async function stepLights() {
+  el.dark.style.transition = 'opacity 1.3s ease';
+  el.dark.style.opacity = 0;
+  playClip('cheer', () => null);
+  confettiRain(160);
+  confettiBurst(L.cx * 0.4, L.vh, 60, 700);
+  confettiBurst(L.cx * 1.6, L.vh, 60, 700);
+  setTimeout(hopChars, 300);
+  say('Yaaay! Happy Birthday! 🎉', '', true);
+  await sleep(3200);
+}
+
+async function stepFork() {
+  say('Grab the fork & take a bite! 🍴', 'Tap or click the cake', true);
+  cake3d.spin = false;                       // hold still so the bites stay where she put them
+  if (cake3d.ready) sampleCake();
+  fork.on = true;
+  document.body.classList.add('forking');
+  fork.x = L.vw + L.C * 0.2; fork.y = L.vh + L.C * 0.2; placeFork();
+  el.fork.offsetWidth;
+  el.fork.classList.add('enter');
+  el.fork.style.opacity = 1;
+  fork.x = L.cx + L.C * 0.55; fork.y = L.top + L.C * 0.55; placeFork();
+}
+
+async function finale() {
+  fork.finished = true;
+  await sleep(500);
+  for (const o of eatable) for (const m of [].concat(o.material)) { m.transparent = true; m.needsUpdate = true; }
+  cake3d.fade = 1;
+  hush();
+  el.fork.style.transition = 'opacity .6s'; el.fork.style.opacity = 0;
+  document.body.classList.remove('forking');
+  await sleep(700);
+  confettiRain(220);
+  danceAmp = 1;
+  chars.forEach(ch => { ch.state = 'dance'; ch.t0 = now; });
+  q('#cardTitle').textContent = `Happy Birthday, ${CONFIG.momName}! 💖`;
+  q('#cardMsg').textContent = CONFIG.finalMessage;
+  q('#cardSig').textContent = CONFIG.signedBy;
+  el.card.classList.add('show');
+}
+q('#replay').addEventListener('click', e => { e.stopPropagation(); location.reload(); });
+
+// ?scene=wish|blow|fork lets you jump ahead while you're testing
+async function main() {
+  try {
+    await initCake3D();
+  } catch (e) {
+    console.error(e);
+    say('The 3D cake could not load 😢', 'Check your internet connection and reload', true);
+  }
+  layout();
+  requestAnimationFrame(frame);
+  const order = ['gift', 'song', 'wish', 'blow', 'lights', 'fork'];
+  const start = Math.max(0, order.indexOf(params.get('scene')));
+  if (start > 0) {
+    await waitTap();                          // still need one tap so sound is allowed
+    ensureCtx(); unlockClips();
+    el.gift.style.display = 'none';
+    showCake(true);
+    chars.forEach(ch => { ch.state = start > 1 ? 'idle' : 'hidden'; });
+    if (start >= 2 && start <= 3) { el.dark.style.transition = 'none'; el.dark.style.opacity = 1; ignite(); }
+  }
+  const steps = { gift: stepGift, song: stepSong, wish: stepWish, blow: stepBlow, lights: stepLights, fork: stepFork };
+  for (const name of order.slice(start)) await steps[name]();
+}
+main();
+})();
+</script>
+</body>
+</html>
