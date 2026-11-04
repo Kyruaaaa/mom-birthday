@@ -22,7 +22,6 @@
   body.forking { cursor: none; }
 
   /* ---------- room ---------- */
-  #bunting { position: fixed; left: 0; top: 0; z-index: 1; pointer-events: none; overflow: visible; }
   #room { position: fixed; inset: 0; z-index: 0; pointer-events: none; }  /* 3D table + wall, same camera as the cake */
   #room canvas { width: 100%; height: 100%; display: block; }
 
@@ -156,7 +155,7 @@
     color: #fff4e0; text-shadow: 0 2px 14px rgba(0,0,0,.5);
   }
   #caption.show { opacity: 1; transform: none; }
-  #caption.light { color: var(--ink); text-shadow: 0 2px 0 rgba(255,255,255,.8); }
+  #caption.light { color: var(--ink); text-shadow: 0 2px 0 rgba(255,255,255,.85), 0 0 14px #fff, 0 0 26px rgba(255,255,255,.9); }
   #caption .main { font-size: clamp(24px, 6vw, 44px); font-weight: 600; line-height: 1.15; }
   #caption .sub { font-size: clamp(15px, 3.6vw, 20px); margin-top: 8px; opacity: .85; }
 
@@ -192,7 +191,6 @@
 </head>
 <body>
 
-<svg id="bunting"></svg>
 <div id="room"></div>
 <div id="chars"></div>
 
@@ -296,7 +294,7 @@ const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
 const el = {
   cake: q('#cake'), gift: q('#gift'), chars: q('#chars'), room: q('#room'),
-  bunting: q('#bunting'), dark: q('#dark'), flameWrap: q('#flameWrap'), flame: q('#flame'),
+  dark: q('#dark'), flameWrap: q('#flameWrap'), flame: q('#flame'),
   halo: q('#halo'), ember: q('#ember'), cap: q('#caption'), fork: q('#fork'), forkInner: q('#forkInner'),
   piece: q('#piece'), canvas: q('#fxc'), card: q('#card'),
 };
@@ -395,16 +393,17 @@ async function initCake3D() {
 }
 
 // The cake and the room behind it are both drawn full-screen through this one camera, so the
-// table, wall and balloons share the cake's perspective. It pulls back / shifts to fit any screen.
-const CAM_TARGET = [0, 0.3, 0], CAM_DIR = [0, 2.0, 4.75];
+// table, wall, banner and bouquets share the cake's perspective. It pulls back / shifts to fit any screen.
+const CAM_TARGET = [0, 0.3, 0], CAM_DIR = [0, 2.0, 4.75], WALL_Z = -1.8;
 function frameCamera(vw, vh) {
   const V = THREE.Vector3, aspect = vw / vh;
-  const tgt = new V(...CAM_TARGET), dir = new V(...CAM_DIR).normalize();
+  // wide screens look a little flatter across the table, so more of the wall shows above the cake
+  const tgt = new V(...CAM_TARGET), dir = new V(CAM_DIR[0], CAM_DIR[1] * (aspect > 1.2 ? 0.72 : 1), CAM_DIR[2]).normalize();
   camera.aspect = aspect;
   camera.fov = Math.max(34, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(17)) / aspect)));
   camera.clearViewOffset();
   // the cake (radius 1) plus candle & flame must fit in this much of the screen
-  const fw = aspect < 0.8 ? 0.84 : aspect < 1.2 ? 0.7 : 0.6, fh = 0.56;
+  const fw = aspect < 0.8 ? 0.84 : aspect < 1.2 ? 0.7 : 0.56, fh = aspect > 1.2 ? 0.5 : 0.56;
   const pts = [];
   for (let i = 0; i < 16; i++) {
     const a = i / 16 * Math.PI * 2;
@@ -459,8 +458,8 @@ function paintTex(w, h, draw, repeat) {
 
 function buildRoom() {
   const s = new THREE.Scene();
-  s.background = new THREE.Color('#e4d9f6');
-  s.fog = new THREE.Fog('#e6dcf6', 9, 30);
+  s.background = new THREE.Color('#e9dccb');
+  s.fog = new THREE.Fog('#e9dccb', 12, 34);
   // lavender gingham tablecloth
   const cloth = paintTex(256, 256, (g, w, h) => {
     g.fillStyle = '#f3eefc'; g.fillRect(0, 0, w, h);
@@ -474,23 +473,11 @@ function buildRoom() {
   }, [44, 44]);
   const table = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial({ map: cloth }));
   table.rotation.x = -Math.PI / 2;
-  table.position.set(0, -0.032, 10 - 4.6);
+  table.position.set(0, -0.032, 20 + WALL_Z);
   s.add(table);
-  // striped wallpaper with little lilac sprigs, behind the table
-  const paper = paintTex(256, 256, (g, w, h) => {
-    const grd = g.createLinearGradient(0, 0, w, 0);
-    grd.addColorStop(0, '#e7dcf8'); grd.addColorStop(0.5, '#efe7fb'); grd.addColorStop(1, '#e7dcf8');
-    g.fillStyle = grd; g.fillRect(0, 0, w, h);
-    g.fillStyle = 'rgba(255,255,255,.45)'; g.fillRect(w * 0.47, 0, w * 0.06, h);
-    for (const [x, y] of [[0.25, 0.3], [0.75, 0.8]]) {
-      g.fillStyle = '#a9c39f'; g.beginPath(); g.ellipse(x * w - 7, y * h + 9, 7, 3, -0.6, 0, 7); g.fill();
-      g.fillStyle = 'rgba(160,126,220,.75)';
-      for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; g.beginPath(); g.arc(x * w + Math.cos(a) * 5, y * h + Math.sin(a) * 5, 4.2, 0, 7); g.fill(); }
-      g.fillStyle = '#f7e9b0'; g.beginPath(); g.arc(x * w, y * h, 2.4, 0, 7); g.fill();
-    }
-  }, [30, 15]);
-  const wall = new THREE.Mesh(new THREE.PlaneGeometry(40, 20), new THREE.MeshBasicMaterial({ map: paper }));
-  wall.position.set(0, 10 - 0.032, -4.6);
+  // plain cream wall; the fabric banner photo hangs on it (placed in placeRoom)
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(40, 20), new THREE.MeshBasicMaterial({ color: '#e9dccb', toneMapped: false }));
+  wall.position.set(0, 10 - 0.032, WALL_Z);
   s.add(wall);
   // a lace-trimmed white skirting where wall meets table
   const lace = paintTex(256, 32, (g, w, h) => {
@@ -501,7 +488,7 @@ function buildRoom() {
   }, [40, 1]);
   lace.wrapT = THREE.ClampToEdgeWrapping;
   const trim = new THREE.Mesh(new THREE.PlaneGeometry(40, 0.32), new THREE.MeshBasicMaterial({ map: lace, transparent: true }));
-  trim.position.set(0, 0.13, -4.58);
+  trim.position.set(0, 0.13, WALL_Z + 0.02);
   s.add(trim);
   // soft contact shadow under the plate
   const blob = paintTex(128, 128, (g, w, h) => {
@@ -513,35 +500,74 @@ function buildRoom() {
   shadow.rotation.x = -Math.PI / 2;
   shadow.position.set(0.12, -0.03, -0.08);
   s.add(shadow);
-  // low-poly balloons floating behind, placed against the screen edges in layout()
-  s.add(new THREE.HemisphereLight(0xffffff, 0xd9cdef, 2.2));
-  const sun = new THREE.DirectionalLight(0xfff6ee, 1.4);
-  sun.position.set(-2.5, 4.5, 3);
-  s.add(sun);
-  const balloons = [['#b79be8', -1], ['#f1c6e2', 1], ['#d9cbf6', 1]].map(([col, side], i) => {
-    const b = new THREE.Group();
-    const skin = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 2), new THREE.MeshStandardMaterial({ color: col, roughness: 0.45, flatShading: true }));
-    skin.scale.set(1, 1.18, 1);
-    const knot = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.09, 6), skin.material);
-    knot.position.y = -0.5;
-    const string = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 2.2, 4), new THREE.MeshBasicMaterial({ color: '#b6a6d4' }));
-    string.position.y = -1.6;
-    b.add(skin, knot, string);
-    b.userData = { side, i, phase: i * 2.1 };
-    s.add(b);
-    return b;
-  });
-  return { scene: s, balloons };
+  // the banner photo and the two bouquets: flat cut-outs, sized and placed per screen in placeRoom()
+  const pic = (src, z, soft) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1),
+      new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false, fog: false, opacity: 0 }));
+    m.position.z = z;
+    m.visible = false;
+    const img = new Image();
+    img.onload = () => {
+      m.userData.aspect = img.naturalWidth / img.naturalHeight;
+      const t = new THREE.Texture(soft ? featherEdges(img) : img);
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 8;
+      t.needsUpdate = true;
+      m.material.map = t;
+      m.material.opacity = 1;
+      m.material.needsUpdate = true;
+      m.visible = true;
+      if (camera) placeRoom();
+    };
+    img.src = src;
+    s.add(m);
+    return m;
+  };
+  const banner = pic('assets/wall-banner.jpg', WALL_Z + 0.01, true);
+  const bouquets = [pic('assets/bouquet-left.webp', WALL_Z + 0.25), pic('assets/bouquet-right.webp', WALL_Z + 0.25)];
+  return { scene: s, banner, bouquets };
 }
 
-// pin the balloons to the left/right edges of whatever screen this is
-function placeBalloons() {
-  const spots = [[-0.78, 0.38, -2.6], [0.8, 0.5, -3.0], [0.55, 0.22, -3.8]];
-  room.balloons.forEach((b, i) => {
-    const [nx, ny, z] = spots[i];
-    const ray = new THREE.Vector3(nx, ny, 0.5).unproject(camera).sub(camera.position).normalize();
-    const t = (z - camera.position.z) / ray.z;
-    b.userData.home = camera.position.clone().addScaledVector(ray, t);
+// fade a photo's edges out so it sits on the wall like fabric rather than a pasted rectangle
+function featherEdges(img) {
+  const w = img.naturalWidth, h = img.naturalHeight, f = Math.round(Math.min(w, h) * 0.06);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.filter = `blur(${f}px)`;
+  g.fillStyle = '#000';
+  g.fillRect(f * 1.6, f * 1.6, w - f * 3.2, h - f * 3.2);
+  g.filter = 'none';
+  g.globalCompositeOperation = 'source-in';
+  g.drawImage(img, 0, 0);
+  return c;
+}
+
+// where a screen point (NDC) lands on the plane z = const
+function hitZ(nx, ny, z) {
+  const ray = new THREE.Vector3(nx, ny, 0.5).unproject(camera).sub(camera.position).normalize();
+  return camera.position.clone().addScaledVector(ray, (z - camera.position.z) / ray.z);
+}
+
+// hang the banner high on the visible wall and stand a bouquet against the wall on each side
+function placeRoom() {
+  const top = hitZ(0, 1, WALL_Z).y;                       // highest visible point of the wall
+  const half = Math.min(hitZ(1, 1, WALL_Z).x, hitZ(1, -0.2, WALL_Z).x);
+  const b = room.banner;
+  if (b.userData.aspect) {
+    const hgt = Math.min(top * 0.95, (half * 2 * 0.98) / b.userData.aspect);
+    b.scale.set(hgt * b.userData.aspect, hgt, 1);
+    b.position.set(0, top - hgt / 2 - top * 0.02, WALL_Z + 0.01);
+  }
+  room.bouquets.forEach((q, i) => {
+    if (!q.userData.aspect) return;
+    const side = i ? 1 : -1, z = WALL_Z + 0.25;
+    const hgt = Math.min(2.1, top * 0.72);
+    const w = hgt * q.userData.aspect;
+    const edge = hitZ(side * 0.98, -0.3, z).x;              // keep it on screen
+    q.scale.set(w, hgt, 1);
+    q.position.set(edge - side * w * 0.5, hgt / 2 - 0.03, z);
+    q.rotation.set(-0.1, -side * 0.18, side * -0.04);       // leaning back against the wall, turned in a little
   });
 }
 
@@ -566,11 +592,6 @@ function renderCake(dt) {
   if (cake3d.fade > 0) {
     cake3d.fade = Math.max(0, cake3d.fade - dt);
     for (const o of eatable) for (const m of [].concat(o.material)) { m.opacity = cake3d.fade; }
-  }
-  for (const b of room.balloons) {
-    const u = b.userData;
-    b.position.copy(u.home).y += Math.sin(now * 0.9 + u.phase) * 0.06;
-    b.rotation.z = Math.sin(now * 0.7 + u.phase) * 0.08;
   }
   roomRenderer.render(room.scene, camera);
   renderer.render(scene, camera);
@@ -713,7 +734,7 @@ function layout() {
     L.cx = base.x;
     L.cy = proj(new V(0, 0.3, 0)).y;
     L.plateY = base.y;                                  // characters stand level with the middle of the cake's base
-    placeBalloons();
+    placeRoom();
     syncCakeScreen();
   }
   C = L.C;
@@ -749,27 +770,6 @@ function layout() {
   el.canvas.style.width = vw + 'px'; el.canvas.style.height = vh + 'px';
   ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  buildBunting();
-}
-
-function buildBunting() {
-  const vw = L.vw, text = ('HAPPY BIRTHDAY ' + CONFIG.momName).toUpperCase();
-  const n = text.length;
-  const fw = Math.min(46, (vw * 0.94) / n), fh = fw * 1.25;
-  const x0 = (vw - fw * n) / 2, y0 = 12, sag = Math.min(60, L.vh * 0.06);
-  const colors = ['#b49ae6', '#d8c8f6', '#9a7ad6', '#f2c9e3', '#c6b3ee'];
-  const yAt = t => y0 + 4 * sag * t * (1 - t);
-  let html = `<path d="M0,${y0} Q${vw / 2},${y0 + 2 * sag} ${vw},${y0}" stroke="#a891d0" stroke-width="2" fill="none"/>`;
-  for (let i = 0; i < n; i++) {
-    const xa = x0 + i * fw, xb = xa + fw, xm = xa + fw / 2;
-    const ya = yAt(xa / vw), yb = yAt(xb / vw), ym = yAt(xm / vw);
-    if (text[i] === ' ') continue;
-    html += `<path d="M${xa + 1},${ya} L${xb - 1},${yb} L${xm},${ym + fh} Z" fill="${colors[i % colors.length]}"/>`;
-    html += `<text x="${xm}" y="${ym + fh * 0.48}" font-size="${fw * 0.52}" font-family="Fredoka, sans-serif" font-weight="700" fill="#fff" text-anchor="middle">${text[i]}</text>`;
-  }
-  el.bunting.setAttribute('width', vw);
-  el.bunting.setAttribute('height', y0 + 2 * sag + fh + 10);
-  el.bunting.innerHTML = html;
 }
 
 /* ---------------- captions ---------------- */
