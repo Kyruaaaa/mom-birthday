@@ -22,8 +22,9 @@
   body.forking { cursor: none; }
 
   /* ---------- room ---------- */
-  #room { position: fixed; inset: 0; z-index: 0; pointer-events: none; }  /* 3D table + wall, same camera as the cake */
-  #room canvas { width: 100%; height: 100%; display: block; }
+  /* the hand-made scene picture; sized/cropped per screen in placeScene() */
+  #room { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+          background: #f9f4f4 url(assets/scene.jpg) no-repeat; background-size: cover; background-position: center top; }
 
   /* ---------- characters (live behind the cake, clipped at the plate line) ---------- */
   #chars { position: fixed; left: 0; top: 0; width: 100%; overflow: hidden; z-index: 5; pointer-events: none; }
@@ -308,7 +309,7 @@ let now = 0;         // seconds, updated every frame
 const MAXB = 112, SPHERES_PER_BITE = 7, MAX_BITES = MAXB / SPHERES_PER_BITE;
 const INSIDE = { Pizza: '#f2dfae', Oat: '#f6e6b8', Waffle: '#f8eed6', Basque: '#f6dc96' };
 const cake3d = { ready: false, spin: true, rotY: -0.75, fade: 0, bites: 0, samples: [] };
-let THREE, renderer, scene, camera, cakeRoot, flameAnchor, candleLight, raycaster, roomRenderer, room;
+let THREE, renderer, scene, camera, cakeRoot, flameAnchor, candleLight, raycaster;
 const eatable = [], biteSpheres = { value: [] }, biteCount = { value: 0 };
 
 function patchMat(m, insideHex) {
@@ -350,15 +351,11 @@ async function initCake3D() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   el.cake.appendChild(renderer.domElement);
-  roomRenderer = new THREE.WebGLRenderer({ antialias: true });
-  roomRenderer.outputColorSpace = THREE.SRGBColorSpace;
-  roomRenderer.toneMapping = THREE.NeutralToneMapping;
-  el.room.appendChild(roomRenderer.domElement);
 
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(30, 1, 0.1, 60);
   frameCamera(innerWidth, innerHeight);      // so proj() is right before the first render
-  room = buildRoom();
+  scene.add(plateShadow());
   scene.add(new THREE.HemisphereLight(0xfbf8ff, 0xe2d8f2, 2.1));
   const sun = new THREE.DirectionalLight(0xfff1e2, 1.9);
   sun.position.set(-2.5, 4.5, 3);
@@ -392,9 +389,9 @@ async function initCake3D() {
   cake3d.ready = true;
 }
 
-// The cake and the room behind it are both drawn full-screen through this one camera, so the
-// table, wall, banner and bouquets share the cake's perspective. It pulls back / shifts to fit any screen.
-const CAM_TARGET = [0, 0.3, 0], CAM_DIR = [0, 2.0, 4.75], WALL_Z = -1.8;
+// The cake is drawn full-screen through this camera over the scene picture.
+// It pulls back / shifts to fit any screen.
+const CAM_TARGET = [0, 0.3, 0], CAM_DIR = [0, 2.0, 4.75];
 function frameCamera(vw, vh) {
   const V = THREE.Vector3, aspect = vw / vh;
   // wide screens look a little flatter across the table, so more of the wall shows above the cake
@@ -403,7 +400,7 @@ function frameCamera(vw, vh) {
   camera.fov = Math.max(34, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(17)) / aspect)));
   camera.clearViewOffset();
   // the cake (radius 1) plus candle & flame must fit in this much of the screen
-  const fw = aspect < 0.8 ? 0.84 : aspect < 1.2 ? 0.7 : 0.56, fh = aspect > 1.2 ? 0.5 : 0.56;
+  const fw = aspect < 0.8 ? 0.84 : aspect < 1.2 ? 0.7 : 0.4, fh = aspect > 1.2 ? 0.36 : 0.56;
   const pts = [];
   for (let i = 0; i < 16; i++) {
     const a = i / 16 * Math.PI * 2;
@@ -437,7 +434,7 @@ function proj(v) {
   return { x: (p.x * 0.5 + 0.5) * L.vw, y: (-p.y * 0.5 + 0.5) * L.vh };
 }
 
-/* soft painted textures for the room, drawn on canvases */
+/* soft painted textures, drawn on canvases */
 function paintTex(w, h, draw, repeat) {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
@@ -456,119 +453,29 @@ function paintTex(w, h, draw, repeat) {
   return t;
 }
 
-function buildRoom() {
-  const s = new THREE.Scene();
-  s.background = new THREE.Color('#e9dccb');
-  s.fog = new THREE.Fog('#e9dccb', 12, 34);
-  // lavender gingham tablecloth
-  const cloth = paintTex(256, 256, (g, w, h) => {
-    g.fillStyle = '#f3eefc'; g.fillRect(0, 0, w, h);
-    g.filter = 'blur(2.5px)';
-    g.fillStyle = 'rgba(167,138,221,.24)';
-    g.fillRect(0, 0, w / 2, h); g.fillRect(0, 0, w, h / 2);
-    g.fillStyle = 'rgba(150,118,212,.14)'; g.fillRect(0, 0, w / 2, h / 2);
-    g.filter = 'none';
-    g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = 1.5; g.setLineDash([4, 5]);
-    for (const k of [0.25, 0.75]) { g.beginPath(); g.moveTo(0, k * h); g.lineTo(w, k * h); g.moveTo(k * w, 0); g.lineTo(k * w, h); g.stroke(); }
-  }, [44, 44]);
-  const table = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial({ map: cloth }));
-  table.rotation.x = -Math.PI / 2;
-  table.position.set(0, -0.032, 20 + WALL_Z);
-  s.add(table);
-  // plain cream wall; the fabric banner photo hangs on it (placed in placeRoom)
-  const wall = new THREE.Mesh(new THREE.PlaneGeometry(40, 20), new THREE.MeshBasicMaterial({ color: '#e9dccb', toneMapped: false }));
-  wall.position.set(0, 10 - 0.032, WALL_Z);
-  s.add(wall);
-  // a lace-trimmed white skirting where wall meets table
-  const lace = paintTex(256, 32, (g, w, h) => {
-    g.fillStyle = '#fbf8ff'; g.fillRect(0, 0, w, h * 0.55);
-    for (let x = 0; x < w; x += 32) { g.beginPath(); g.arc(x + 16, h * 0.55, 16, 0, Math.PI); g.fill(); }
-    g.fillStyle = 'rgba(160,130,215,.55)';
-    for (let x = 0; x < w; x += 32) { g.beginPath(); g.arc(x + 16, h * 0.5, 4, 0, 7); g.fill(); }
-  }, [40, 1]);
-  lace.wrapT = THREE.ClampToEdgeWrapping;
-  const trim = new THREE.Mesh(new THREE.PlaneGeometry(40, 0.32), new THREE.MeshBasicMaterial({ map: lace, transparent: true }));
-  trim.position.set(0, 0.13, WALL_Z + 0.02);
-  s.add(trim);
-  // soft contact shadow under the plate
+// soft contact shadow on the tablecloth under the plate
+function plateShadow() {
   const blob = paintTex(128, 128, (g, w, h) => {
     const r = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
-    r.addColorStop(0, 'rgba(70,45,120,.42)'); r.addColorStop(0.62, 'rgba(70,45,120,.28)'); r.addColorStop(1, 'rgba(70,45,120,0)');
+    r.addColorStop(0, 'rgba(70,45,120,.4)'); r.addColorStop(0.62, 'rgba(70,45,120,.24)'); r.addColorStop(1, 'rgba(70,45,120,0)');
     g.fillStyle = r; g.fillRect(0, 0, w, h);
   });
-  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(4.1, 4.1), new THREE.MeshBasicMaterial({ map: blob, transparent: true, depthWrite: false }));
-  shadow.rotation.x = -Math.PI / 2;
-  shadow.position.set(0.12, -0.03, -0.08);
-  s.add(shadow);
-  // the banner photo and the two bouquets: flat cut-outs, sized and placed per screen in placeRoom()
-  const pic = (src, z, soft) => {
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1),
-      new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false, fog: false, opacity: 0 }));
-    m.position.z = z;
-    m.visible = false;
-    const img = new Image();
-    img.onload = () => {
-      m.userData.aspect = img.naturalWidth / img.naturalHeight;
-      const t = new THREE.Texture(soft ? featherEdges(img) : img);
-      t.colorSpace = THREE.SRGBColorSpace;
-      t.anisotropy = 8;
-      t.needsUpdate = true;
-      m.material.map = t;
-      m.material.opacity = 1;
-      m.material.needsUpdate = true;
-      m.visible = true;
-      if (camera) placeRoom();
-    };
-    img.src = src;
-    s.add(m);
-    return m;
-  };
-  const banner = pic('assets/wall-banner.jpg', WALL_Z + 0.01, true);
-  const bouquets = [pic('assets/bouquet-left.webp', WALL_Z + 0.25), pic('assets/bouquet-right.webp', WALL_Z + 0.25)];
-  return { scene: s, banner, bouquets };
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(4.1, 4.1), new THREE.MeshBasicMaterial({ map: blob, transparent: true, depthWrite: false, toneMapped: false }));
+  m.rotation.x = -Math.PI / 2;
+  m.position.set(0.12, -0.035, -0.08);
+  m.renderOrder = -1;
+  return m;
 }
 
-// fade a photo's edges out so it sits on the wall like fabric rather than a pasted rectangle
-function featherEdges(img) {
-  const w = img.naturalWidth, h = img.naturalHeight, f = Math.round(Math.min(w, h) * 0.06);
-  const c = document.createElement('canvas');
-  c.width = w; c.height = h;
-  const g = c.getContext('2d');
-  g.filter = `blur(${f}px)`;
-  g.fillStyle = '#000';
-  g.fillRect(f * 1.6, f * 1.6, w - f * 3.2, h - f * 3.2);
-  g.filter = 'none';
-  g.globalCompositeOperation = 'source-in';
-  g.drawImage(img, 0, 0);
-  return c;
-}
-
-// where a screen point (NDC) lands on the plane z = const
-function hitZ(nx, ny, z) {
-  const ray = new THREE.Vector3(nx, ny, 0.5).unproject(camera).sub(camera.position).normalize();
-  return camera.position.clone().addScaledVector(ray, (z - camera.position.z) / ray.z);
-}
-
-// hang the banner high on the visible wall and stand a bouquet against the wall on each side
-function placeRoom() {
-  const top = hitZ(0, 1, WALL_Z).y;                       // highest visible point of the wall
-  const half = Math.min(hitZ(1, 1, WALL_Z).x, hitZ(1, -0.2, WALL_Z).x);
-  const b = room.banner;
-  if (b.userData.aspect) {
-    const hgt = Math.min(top * 0.95, (half * 2 * 0.98) / b.userData.aspect);
-    b.scale.set(hgt * b.userData.aspect, hgt, 1);
-    b.position.set(0, top - hgt / 2 - top * 0.02, WALL_Z + 0.01);
-  }
-  room.bouquets.forEach((q, i) => {
-    if (!q.userData.aspect) return;
-    const side = i ? 1 : -1, z = WALL_Z + 0.25;
-    const hgt = Math.min(2.1, top * 0.72);
-    const w = hgt * q.userData.aspect;
-    const edge = hitZ(side * 0.98, -0.3, z).x;              // keep it on screen
-    q.scale.set(w, hgt, 1);
-    q.position.set(edge - side * w * 0.5, hgt / 2 - 0.03, z);
-    q.rotation.set(-0.1, -side * 0.18, side * -0.04);       // leaning back against the wall, turned in a little
-  });
+// The scene picture fills the screen behind the cake: cover on wide screens; on tall screens the
+// top half shows the picture (cropped at the sides) and the polka-dot tablecloth continues below.
+const SCENE_W = 2000, SCENE_H = 1125;
+function placeScene() {
+  const { vw, vh } = L, wide = vw / vh >= 1.2;
+  const s = Math.max(vw / SCENE_W, wide ? vh / SCENE_H : vh * 0.56 / SCENE_H);
+  const w = SCENE_W * s;
+  el.room.style.backgroundSize = `${w}px auto`;
+  el.room.style.backgroundPosition = `${(vw - w) / 2}px ${wide ? (vh - SCENE_H * s) / 2 : 0}px`;
 }
 
 // keeps the flame, glow and character "floor" glued to the 3D cake
@@ -593,7 +500,6 @@ function renderCake(dt) {
     cake3d.fade = Math.max(0, cake3d.fade - dt);
     for (const o of eatable) for (const m of [].concat(o.material)) { m.opacity = cake3d.fade; }
   }
-  roomRenderer.render(room.scene, camera);
   renderer.render(scene, camera);
   syncCakeScreen();
 }
@@ -728,15 +634,15 @@ function layout() {
   if (cake3d.ready) {
     frameCamera(vw, vh);
     const V = THREE.Vector3, dpr = Math.min(devicePixelRatio || 1, 2);
-    for (const r of [renderer, roomRenderer]) { r.setPixelRatio(dpr); r.setSize(vw, vh, false); }
+    renderer.setPixelRatio(dpr); renderer.setSize(vw, vh, false);
     L.C = (proj(new V(1, 0.3, 0)).x - proj(new V(-1, 0.3, 0)).x) / 0.72;
     const base = proj(new V(0, 0, 0));
     L.cx = base.x;
     L.cy = proj(new V(0, 0.3, 0)).y;
     L.plateY = base.y;                                  // characters stand level with the middle of the cake's base
-    placeRoom();
     syncCakeScreen();
   }
+  placeScene();
   C = L.C;
   const cx = L.cx;
   el.cake.style.transformOrigin = `${cx}px ${L.plateY}px`;
