@@ -8,8 +8,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --pink: #e75480;
-    --ink: #8a2c55;
+    --lav: #9a7ad6;
+    --ink: #5a3f8f;
     --fx: 50vw; --fy: 50vh; --r: 0px;
   }
   html, body {
@@ -18,20 +18,13 @@
     -webkit-tap-highlight-color: transparent;
     font-family: 'Fredoka', system-ui, -apple-system, sans-serif;
   }
-  body { background: linear-gradient(#ffe3ec 0%, #fff1e6 60%, #ffe9d6 100%); }
+  body { background: linear-gradient(#e6dcf7 0%, #f1ebfb 55%, #ddd0f3 100%); }
   body.forking { cursor: none; }
 
   /* ---------- room ---------- */
   #bunting { position: fixed; left: 0; top: 0; z-index: 1; pointer-events: none; overflow: visible; }
-  #table {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 2;
-    background: linear-gradient(#f9cfdc, #f0b5c8);
-    box-shadow: inset 0 5px 0 rgba(255,255,255,.55), 0 -2px 12px rgba(160,60,100,.12);
-  }
-  #table::before { /* scalloped tablecloth edge */
-    content: ''; position: absolute; left: 0; right: 0; top: -1px; height: 14px;
-    background: radial-gradient(circle at 12px 0, rgba(255,255,255,.6) 9px, transparent 10px) 0 0 / 24px 14px repeat-x;
-  }
+  #room { position: fixed; inset: 0; z-index: 0; pointer-events: none; }  /* 3D table + wall, same camera as the cake */
+  #room canvas { width: 100%; height: 100%; display: block; }
 
   /* ---------- characters (live behind the cake, clipped at the plate line) ---------- */
   #chars { position: fixed; left: 0; top: 0; width: 100%; overflow: hidden; z-index: 5; pointer-events: none; }
@@ -40,7 +33,7 @@
   .char .ph { height: 100%; display: grid; place-items: end center; line-height: 1; }
 
   /* ---------- cake ---------- */
-  #cake { position: fixed; z-index: 10; opacity: 0; transform-origin: 50% 80%; transform: scale(.25) translateY(25%); }
+  #cake { position: fixed; inset: 0; z-index: 10; pointer-events: none; opacity: 0; transform: scale(.25); }
   #cake.show { opacity: 1; transform: none; transition: transform 1s cubic-bezier(.34,1.56,.64,1), opacity .35s; }
   #cake.instant { transition: none; }
   #cake canvas { width: 100%; height: 100%; display: block; }
@@ -50,35 +43,35 @@
   #gift .wrap { position: absolute; inset: 0; animation: wobble 2.6s ease-in-out infinite; transform-origin: 50% 100%; }
   #gift .wrap::after {
     content: ''; position: absolute; left: 8%; right: 8%; bottom: -5%; height: 9%;
-    background: radial-gradient(ellipse, rgba(120,40,80,.25), transparent 70%); z-index: -1;
+    background: radial-gradient(ellipse, rgba(80,50,130,.25), transparent 70%); z-index: -1;
   }
   .gift-body {
     position: absolute; left: 6%; width: 88%; top: 36%; height: 64%; border-radius: 8px;
     background:
       radial-gradient(circle, rgba(255,255,255,.35) 13%, transparent 14%) 0 0 / 20% 20%,
-      linear-gradient(90deg, #6c4ef2, #9c86ff 45%, #6c4ef2);
+      linear-gradient(90deg, #a487de, #cdb9f4 45%, #a487de);
     box-shadow: inset 0 -10px 0 rgba(0,0,0,.08);
   }
   .gift-lid {
     position: absolute; left: 0; width: 100%; top: 22%; height: 16%; border-radius: 8px;
-    background: linear-gradient(90deg, #5b3ee6, #8c74ff 45%, #5b3ee6);
+    background: linear-gradient(90deg, #9478d4, #c2acf0 45%, #9478d4);
     box-shadow: 0 5px 0 rgba(0,0,0,.12);
   }
   .gift-body::before, .gift-lid::before {
     content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 15%; transform: translateX(-50%);
-    background: linear-gradient(90deg, #f2bd00, #ffe066 50%, #f2bd00);
+    background: linear-gradient(90deg, #efe3f7, #fffaff 50%, #efe3f7);
   }
   .bow { position: absolute; left: 50%; bottom: 90%; width: 0; height: 0; }
   .loop {
     position: absolute; bottom: 0; box-sizing: border-box;
     width: calc(var(--s) * .24); height: calc(var(--s) * .17);
-    border: calc(var(--s) * .045) solid #ffd23f; border-radius: 50%;
+    border: calc(var(--s) * .045) solid #fbf5ff; border-radius: 50%;
   }
   .loop.l { right: 0; transform-origin: 100% 100%; transform: rotate(-18deg); }
   .loop.r { left: 0; transform-origin: 0 100%; transform: rotate(18deg); }
   .knot {
     position: absolute; width: calc(var(--s) * .09); height: calc(var(--s) * .08);
-    left: calc(var(--s) * -.045); bottom: calc(var(--s) * -.03); background: #f2bd00; border-radius: 40%;
+    left: calc(var(--s) * -.045); bottom: calc(var(--s) * -.03); background: #e6d8f6; border-radius: 40%;
   }
   .tap {
     position: absolute; left: 50%; top: 106%; transform: translateX(-50%); white-space: nowrap;
@@ -168,7 +161,7 @@
   #caption .sub { font-size: clamp(15px, 3.6vw, 20px); margin-top: 8px; opacity: .85; }
 
   .nom {
-    position: fixed; z-index: 41; pointer-events: none; font-weight: 700; color: var(--pink);
+    position: fixed; z-index: 41; pointer-events: none; font-weight: 700; color: var(--lav);
     font-size: clamp(20px, 5vw, 32px); text-shadow: 0 2px 0 #fff; transform: translate(-50%, -50%);
     animation: nom .9s ease-out forwards;
   }
@@ -181,14 +174,14 @@
   #card.show { opacity: 1; pointer-events: auto; }
   #card .box {
     background: rgba(255,255,255,.94); border-radius: 26px; padding: 28px 26px 24px; max-width: min(88vw, 460px);
-    text-align: center; box-shadow: 0 20px 60px rgba(160,50,100,.3); transform: scale(.85); transition: transform 1s cubic-bezier(.34,1.56,.64,1);
+    text-align: center; box-shadow: 0 20px 60px rgba(90,60,150,.3); transform: scale(.85); transition: transform 1s cubic-bezier(.34,1.56,.64,1);
   }
   #card.show .box { transform: none; }
-  #card h1 { font-family: 'Dancing Script', cursive; color: var(--pink); font-size: clamp(36px, 9vw, 56px); margin: 0 0 10px; line-height: 1.05; }
-  #card p { color: #6b3550; font-size: clamp(16px, 4vw, 20px); margin: 8px 0; line-height: 1.4; }
+  #card h1 { font-family: 'Dancing Script', cursive; color: var(--lav); font-size: clamp(36px, 9vw, 56px); margin: 0 0 10px; line-height: 1.05; }
+  #card p { color: #5d4a7a; font-size: clamp(16px, 4vw, 20px); margin: 8px 0; line-height: 1.4; }
   #card .sig { font-weight: 600; color: var(--ink); }
   #card button {
-    margin-top: 14px; font: inherit; font-size: 16px; color: #fff; background: var(--pink); border: 0;
+    margin-top: 14px; font: inherit; font-size: 16px; color: #fff; background: var(--lav); border: 0;
     border-radius: 999px; padding: 10px 22px; cursor: pointer;
   }
 
@@ -200,7 +193,7 @@
 <body>
 
 <svg id="bunting"></svg>
-<div id="table"></div>
+<div id="room"></div>
 <div id="chars"></div>
 
 <div id="cake"></div>
@@ -302,7 +295,7 @@ const easeOut = t => 1 - Math.pow(1 - t, 3);
 const params = new URLSearchParams(location.search);
 const DEBUG = params.has('debug');
 const el = {
-  cake: q('#cake'), gift: q('#gift'), chars: q('#chars'), table: q('#table'),
+  cake: q('#cake'), gift: q('#gift'), chars: q('#chars'), room: q('#room'),
   bunting: q('#bunting'), dark: q('#dark'), flameWrap: q('#flameWrap'), flame: q('#flame'),
   halo: q('#halo'), ember: q('#ember'), cap: q('#caption'), fork: q('#fork'), forkInner: q('#forkInner'),
   piece: q('#piece'), canvas: q('#fxc'), card: q('#card'),
@@ -317,7 +310,7 @@ let now = 0;         // seconds, updated every frame
 const MAXB = 112, SPHERES_PER_BITE = 7, MAX_BITES = MAXB / SPHERES_PER_BITE;
 const INSIDE = { Pizza: '#f2dfae', Oat: '#f6e6b8', Waffle: '#f8eed6', Basque: '#f6dc96' };
 const cake3d = { ready: false, spin: true, rotY: -0.75, fade: 0, bites: 0, samples: [] };
-let THREE, renderer, scene, camera, cakeRoot, flameAnchor, candleLight, raycaster;
+let THREE, renderer, scene, camera, cakeRoot, flameAnchor, candleLight, raycaster, roomRenderer, room;
 const eatable = [], biteSpheres = { value: [] }, biteCount = { value: 0 };
 
 function patchMat(m, insideHex) {
@@ -359,13 +352,16 @@ async function initCake3D() {
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   el.cake.appendChild(renderer.domElement);
+  roomRenderer = new THREE.WebGLRenderer({ antialias: true });
+  roomRenderer.outputColorSpace = THREE.SRGBColorSpace;
+  roomRenderer.toneMapping = THREE.NeutralToneMapping;
+  el.room.appendChild(roomRenderer.domElement);
 
   scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(30, 1, 0.1, 50);
-  camera.position.set(0, 2.3, 4.75);
-  camera.lookAt(0, 0.3, 0);
-  camera.updateMatrixWorld();                // so proj() is right before the first render
-  scene.add(new THREE.HemisphereLight(0xfff6ee, 0xead8ce, 2.1));
+  camera = new THREE.PerspectiveCamera(30, 1, 0.1, 60);
+  frameCamera(innerWidth, innerHeight);      // so proj() is right before the first render
+  room = buildRoom();
+  scene.add(new THREE.HemisphereLight(0xfbf8ff, 0xe2d8f2, 2.1));
   const sun = new THREE.DirectionalLight(0xfff1e2, 1.9);
   sun.position.set(-2.5, 4.5, 3);
   sun.castShadow = true;
@@ -398,9 +394,155 @@ async function initCake3D() {
   cake3d.ready = true;
 }
 
+// The cake and the room behind it are both drawn full-screen through this one camera, so the
+// table, wall and balloons share the cake's perspective. It pulls back / shifts to fit any screen.
+const CAM_TARGET = [0, 0.3, 0], CAM_DIR = [0, 2.0, 4.75];
+function frameCamera(vw, vh) {
+  const V = THREE.Vector3, aspect = vw / vh;
+  const tgt = new V(...CAM_TARGET), dir = new V(...CAM_DIR).normalize();
+  camera.aspect = aspect;
+  camera.fov = Math.max(34, THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(17)) / aspect)));
+  camera.clearViewOffset();
+  // the cake (radius 1) plus candle & flame must fit in this much of the screen
+  const fw = aspect < 0.8 ? 0.84 : aspect < 1.2 ? 0.7 : 0.6, fh = 0.56;
+  const pts = [];
+  for (let i = 0; i < 16; i++) {
+    const a = i / 16 * Math.PI * 2;
+    pts.push(new V(Math.cos(a), 0, Math.sin(a)), new V(Math.cos(a), 0.6, Math.sin(a)));
+  }
+  pts.push(new V(0, 1.15, 0));
+  const plate = Array.from({ length: 24 }, (_, i) => new V(Math.cos(i / 24 * Math.PI * 2) * 1.56, 0, Math.sin(i / 24 * Math.PI * 2) * 1.56));
+  const bbox = list => {
+    let x0 = 9, x1 = -9, y0 = 9, y1 = -9;
+    for (const p of list) { const q = p.clone().project(camera); x0 = Math.min(x0, q.x); x1 = Math.max(x1, q.x); y0 = Math.min(y0, q.y); y1 = Math.max(y1, q.y); }
+    return { x0, x1, y0, y1 };
+  };
+  let d = 6;
+  for (let i = 0; i < 4; i++) {
+    camera.position.copy(tgt).addScaledVector(dir, d);
+    camera.lookAt(tgt);
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
+    const b = bbox(pts);
+    d *= Math.max((b.x1 - b.x0) / (2 * fw), (b.y1 - b.y0) / (2 * fh));
+  }
+  // slide the view so the front of the plate sits near the bottom, leaving the top for words
+  const cb = bbox(pts), pb = bbox(plate);
+  const shift = Math.min(-0.93 - pb.y0, 0.6 - cb.y1);          // in NDC, + moves the picture up
+  camera.setViewOffset(vw, vh, 0, shift * vh / 2, vw, vh);
+  camera.updateProjectionMatrix();
+}
+
 function proj(v) {
   const p = v.clone().project(camera);
-  return { x: L.cakeLeft + (p.x * 0.5 + 0.5) * L.C, y: L.top + (-p.y * 0.5 + 0.5) * L.C };
+  return { x: (p.x * 0.5 + 0.5) * L.vw, y: (-p.y * 0.5 + 0.5) * L.vh };
+}
+
+/* soft painted textures for the room, drawn on canvases */
+function paintTex(w, h, draw, repeat) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  draw(g, w, h);
+  const img = g.getImageData(0, 0, w, h), px = img.data;   // paper grain
+  for (let i = 0; i < px.length; i += 4) {
+    const n = (Math.random() - 0.5) * 9;
+    px[i] += n; px[i + 1] += n; px[i + 2] += n;
+  }
+  g.putImageData(img, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...repeat); }
+  return t;
+}
+
+function buildRoom() {
+  const s = new THREE.Scene();
+  s.background = new THREE.Color('#e4d9f6');
+  s.fog = new THREE.Fog('#e6dcf6', 9, 30);
+  // lavender gingham tablecloth
+  const cloth = paintTex(256, 256, (g, w, h) => {
+    g.fillStyle = '#f3eefc'; g.fillRect(0, 0, w, h);
+    g.filter = 'blur(2.5px)';
+    g.fillStyle = 'rgba(167,138,221,.24)';
+    g.fillRect(0, 0, w / 2, h); g.fillRect(0, 0, w, h / 2);
+    g.fillStyle = 'rgba(150,118,212,.14)'; g.fillRect(0, 0, w / 2, h / 2);
+    g.filter = 'none';
+    g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = 1.5; g.setLineDash([4, 5]);
+    for (const k of [0.25, 0.75]) { g.beginPath(); g.moveTo(0, k * h); g.lineTo(w, k * h); g.moveTo(k * w, 0); g.lineTo(k * w, h); g.stroke(); }
+  }, [44, 44]);
+  const table = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshBasicMaterial({ map: cloth }));
+  table.rotation.x = -Math.PI / 2;
+  table.position.set(0, -0.032, 10 - 4.6);
+  s.add(table);
+  // striped wallpaper with little lilac sprigs, behind the table
+  const paper = paintTex(256, 256, (g, w, h) => {
+    const grd = g.createLinearGradient(0, 0, w, 0);
+    grd.addColorStop(0, '#e7dcf8'); grd.addColorStop(0.5, '#efe7fb'); grd.addColorStop(1, '#e7dcf8');
+    g.fillStyle = grd; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(255,255,255,.45)'; g.fillRect(w * 0.47, 0, w * 0.06, h);
+    for (const [x, y] of [[0.25, 0.3], [0.75, 0.8]]) {
+      g.fillStyle = '#a9c39f'; g.beginPath(); g.ellipse(x * w - 7, y * h + 9, 7, 3, -0.6, 0, 7); g.fill();
+      g.fillStyle = 'rgba(160,126,220,.75)';
+      for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; g.beginPath(); g.arc(x * w + Math.cos(a) * 5, y * h + Math.sin(a) * 5, 4.2, 0, 7); g.fill(); }
+      g.fillStyle = '#f7e9b0'; g.beginPath(); g.arc(x * w, y * h, 2.4, 0, 7); g.fill();
+    }
+  }, [30, 15]);
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(40, 20), new THREE.MeshBasicMaterial({ map: paper }));
+  wall.position.set(0, 10 - 0.032, -4.6);
+  s.add(wall);
+  // a lace-trimmed white skirting where wall meets table
+  const lace = paintTex(256, 32, (g, w, h) => {
+    g.fillStyle = '#fbf8ff'; g.fillRect(0, 0, w, h * 0.55);
+    for (let x = 0; x < w; x += 32) { g.beginPath(); g.arc(x + 16, h * 0.55, 16, 0, Math.PI); g.fill(); }
+    g.fillStyle = 'rgba(160,130,215,.55)';
+    for (let x = 0; x < w; x += 32) { g.beginPath(); g.arc(x + 16, h * 0.5, 4, 0, 7); g.fill(); }
+  }, [40, 1]);
+  lace.wrapT = THREE.ClampToEdgeWrapping;
+  const trim = new THREE.Mesh(new THREE.PlaneGeometry(40, 0.32), new THREE.MeshBasicMaterial({ map: lace, transparent: true }));
+  trim.position.set(0, 0.13, -4.58);
+  s.add(trim);
+  // soft contact shadow under the plate
+  const blob = paintTex(128, 128, (g, w, h) => {
+    const r = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2);
+    r.addColorStop(0, 'rgba(70,45,120,.42)'); r.addColorStop(0.62, 'rgba(70,45,120,.28)'); r.addColorStop(1, 'rgba(70,45,120,0)');
+    g.fillStyle = r; g.fillRect(0, 0, w, h);
+  });
+  const shadow = new THREE.Mesh(new THREE.PlaneGeometry(4.1, 4.1), new THREE.MeshBasicMaterial({ map: blob, transparent: true, depthWrite: false }));
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.set(0.12, -0.03, -0.08);
+  s.add(shadow);
+  // low-poly balloons floating behind, placed against the screen edges in layout()
+  s.add(new THREE.HemisphereLight(0xffffff, 0xd9cdef, 2.2));
+  const sun = new THREE.DirectionalLight(0xfff6ee, 1.4);
+  sun.position.set(-2.5, 4.5, 3);
+  s.add(sun);
+  const balloons = [['#b79be8', -1], ['#f1c6e2', 1], ['#d9cbf6', 1]].map(([col, side], i) => {
+    const b = new THREE.Group();
+    const skin = new THREE.Mesh(new THREE.IcosahedronGeometry(0.42, 2), new THREE.MeshStandardMaterial({ color: col, roughness: 0.45, flatShading: true }));
+    skin.scale.set(1, 1.18, 1);
+    const knot = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.09, 6), skin.material);
+    knot.position.y = -0.5;
+    const string = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 2.2, 4), new THREE.MeshBasicMaterial({ color: '#b6a6d4' }));
+    string.position.y = -1.6;
+    b.add(skin, knot, string);
+    b.userData = { side, i, phase: i * 2.1 };
+    s.add(b);
+    return b;
+  });
+  return { scene: s, balloons };
+}
+
+// pin the balloons to the left/right edges of whatever screen this is
+function placeBalloons() {
+  const spots = [[-0.78, 0.38, -2.6], [0.8, 0.5, -3.0], [0.55, 0.22, -3.8]];
+  room.balloons.forEach((b, i) => {
+    const [nx, ny, z] = spots[i];
+    const ray = new THREE.Vector3(nx, ny, 0.5).unproject(camera).sub(camera.position).normalize();
+    const t = (z - camera.position.z) / ray.z;
+    b.userData.home = camera.position.clone().addScaledVector(ray, t);
+  });
 }
 
 // keeps the flame, glow and character "floor" glued to the 3D cake
@@ -425,6 +567,12 @@ function renderCake(dt) {
     cake3d.fade = Math.max(0, cake3d.fade - dt);
     for (const o of eatable) for (const m of [].concat(o.material)) { m.opacity = cake3d.fade; }
   }
+  for (const b of room.balloons) {
+    const u = b.userData;
+    b.position.copy(u.home).y += Math.sin(now * 0.9 + u.phase) * 0.06;
+    b.rotation.z = Math.sin(now * 0.7 + u.phase) * 0.08;
+  }
+  roomRenderer.render(room.scene, camera);
   renderer.render(scene, camera);
   syncCakeScreen();
 }
@@ -439,7 +587,7 @@ function insideBite(p, pad = 0) {
 
 // which bit of cake (if any) is under the fork tip
 function hitCake(x, y) {
-  const ndc = new THREE.Vector2(((x - L.cakeLeft) / L.C) * 2 - 1, -((y - L.top) / L.C) * 2 + 1);
+  const ndc = new THREE.Vector2((x / L.vw) * 2 - 1, -(y / L.vh) * 2 + 1);
   raycaster.setFromCamera(ndc, camera);
   for (const h of raycaster.intersectObjects(eatable, false))
     if (!insideBite(h.point, -0.01)) return { point: h.point, dir: raycaster.ray.direction.clone(), obj: h.object };
@@ -553,22 +701,28 @@ function hopChars() { chars.forEach((ch, i) => { if (ch.state !== 'hidden' && ch
 /* ---------------- layout ---------------- */
 function layout() {
   const vw = innerWidth, vh = innerHeight;
-  const C = Math.min(vw * 0.74, vh * 0.5, 480);
-  const cx = vw / 2;
-  const top = Math.max(vh * 0.6 - C / 2, vh * 0.22);
-  L = { vw, vh, C, cx, top, cakeLeft: cx - C / 2, plateY: top + 0.83 * C, wickX: cx, wickY: top + 0.245 * C };
+  // C = the size everything else is scaled by (the cake is about 0.72·C across on screen)
+  let C = Math.min(vw * 0.9, vh * 0.62);                 // stand-in until the 3D cake has loaded
+  L = { vw, vh, C, cx: vw / 2, cy: vh * 0.6, plateY: vh * 0.6 + C * 0.25, wickX: vw / 2, wickY: vh * 0.6 - C * 0.3 };
   if (cake3d.ready) {
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-    renderer.setSize(C, C, false);
-    L.plateY = proj(new THREE.Vector3(0, 0, 0)).y;      // characters stand level with the middle of the cake's base
+    frameCamera(vw, vh);
+    const V = THREE.Vector3, dpr = Math.min(devicePixelRatio || 1, 2);
+    for (const r of [renderer, roomRenderer]) { r.setPixelRatio(dpr); r.setSize(vw, vh, false); }
+    L.C = (proj(new V(1, 0.3, 0)).x - proj(new V(-1, 0.3, 0)).x) / 0.72;
+    const base = proj(new V(0, 0, 0));
+    L.cx = base.x;
+    L.cy = proj(new V(0, 0.3, 0)).y;
+    L.plateY = base.y;                                  // characters stand level with the middle of the cake's base
+    placeBalloons();
     syncCakeScreen();
   }
+  C = L.C;
+  const cx = L.cx;
+  el.cake.style.transformOrigin = `${cx}px ${L.plateY}px`;
 
-  Object.assign(el.cake.style, { left: cx - C / 2 + 'px', top: top + 'px', width: C + 'px', height: C + 'px' });
-  const G = C * 0.8;
-  Object.assign(el.gift.style, { left: cx - G / 2 + 'px', top: top + C * 0.82 - G + 'px', width: G + 'px', height: G + 'px' });
+  const G = C * 0.62;
+  Object.assign(el.gift.style, { left: cx - G / 2 + 'px', top: L.plateY + C * 0.1 - G + 'px', width: G + 'px', height: G + 'px' });
   el.gift.style.setProperty('--s', G + 'px');
-  el.table.style.top = top + 0.7 * C + 'px';
   el.chars.style.height = L.plateY + 'px';
 
   const root = document.documentElement.style;
@@ -576,10 +730,10 @@ function layout() {
   root.setProperty('--fh', C * 0.12 + 'px');
   root.setProperty('--hw', C * 0.7 + 'px');
 
-  const big = Math.max(...chars.map(c => c.cfg.size * C * c.aspect));
+  const big = Math.max(...chars.map(c => c.cfg.size * C * 0.8 * c.aspect));
   const spread = Math.max(0, Math.min(vw / 2 - big / 2 - 6, 0.98 * C));
   for (const ch of chars) {
-    ch.h = ch.cfg.size * C;
+    ch.h = ch.cfg.size * C * 0.8;
     ch.w = ch.h * ch.aspect;
     let x = ch.cfg.slot * spread;
     const minAbs = 0.3 * C + ch.w * 0.3;               // don't hide completely behind the cake
@@ -603,9 +757,9 @@ function buildBunting() {
   const n = text.length;
   const fw = Math.min(46, (vw * 0.94) / n), fh = fw * 1.25;
   const x0 = (vw - fw * n) / 2, y0 = 12, sag = Math.min(60, L.vh * 0.06);
-  const colors = ['#ff8fab', '#ffd23f', '#7cc6f6', '#7ee0a8', '#b28dff'];
+  const colors = ['#b49ae6', '#d8c8f6', '#9a7ad6', '#f2c9e3', '#c6b3ee'];
   const yAt = t => y0 + 4 * sag * t * (1 - t);
-  let html = `<path d="M0,${y0} Q${vw / 2},${y0 + 2 * sag} ${vw},${y0}" stroke="#c98aa3" stroke-width="2" fill="none"/>`;
+  let html = `<path d="M0,${y0} Q${vw / 2},${y0 + 2 * sag} ${vw},${y0}" stroke="#a891d0" stroke-width="2" fill="none"/>`;
   for (let i = 0; i < n; i++) {
     const xa = x0 + i * fw, xb = xa + fw, xm = xa + fw / 2;
     const ya = yAt(xa / vw), yb = yAt(xb / vw), ym = yAt(xm / vw);
@@ -798,7 +952,7 @@ function updateFlame(dt) {
   el.flame.style.transform = `rotate(${lean.toFixed(1)}deg) scale(${Math.max(0, sx).toFixed(3)}, ${Math.max(0, sy).toFixed(3)})`;
   const glow = F.size * clamp(1 + flick * 1.5 - b * 0.45, 0, 1.3) * weak;
   el.halo.style.opacity = glow.toFixed(3);
-  document.documentElement.style.setProperty('--r', (L.C * 0.7 * glow).toFixed(1) + 'px');
+  document.documentElement.style.setProperty('--r', (L.C * 0.55 * glow).toFixed(1) + 'px');
 
   if (embers > 0) {                    // keep puffing smoke after it goes out
     embers -= dt;
@@ -831,7 +985,7 @@ function blowOut() {
 
 /* ---------------- particles (smoke, sparks, crumbs, confetti) ---------------- */
 let sparks = [], crumbs = [], confetti = [];
-const confColors = ['#ff6b9a', '#ffd23f', '#7cc6f6', '#7ee0a8', '#b28dff', '#ff9f43', '#ffffff'];
+const confColors = ['#b28dff', '#d6c4ff', '#8f6fd6', '#f3c6e6', '#ffffff', '#e9dcff', '#ffe9a8'];
 function confettiBurst(x, y, n, power = 520) {
   for (let i = 0; i < n; i++) {
     const a = rand(-Math.PI * 0.9, -Math.PI * 0.1), v = rand(power * 0.4, power);
@@ -979,7 +1133,7 @@ async function stepGift() {
   sfxPop();
   el.gift.classList.add('open');
   await sleep(550);
-  confettiBurst(L.cx, L.top + L.C * 0.45, 140);
+  confettiBurst(L.cx, L.cy, 140);
   showCake(false);
   await sleep(1200);
   el.gift.style.display = 'none';
@@ -1042,7 +1196,7 @@ async function stepFork() {
   el.fork.offsetWidth;
   el.fork.classList.add('enter');
   el.fork.style.opacity = 1;
-  fork.x = L.cx + L.C * 0.55; fork.y = L.top + L.C * 0.55; placeFork();
+  fork.x = L.cx + L.C * 0.55; fork.y = L.cy + L.C * 0.1; placeFork();
 }
 
 async function finale() {

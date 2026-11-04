@@ -324,7 +324,7 @@ def candle_tex():
     u, v = np.meshgrid(np.linspace(0, 1, n, endpoint=False), np.linspace(0, 1, n, endpoint=False))
     stripe = ((u * 4 + v * 2.5) % 1) < 0.5
     col = np.zeros((n, n, 3)) + C('#fffaf2')
-    col[stripe] = C('#8fcaf2')
+    col[stripe] = C('#b9a2e6')
     return save_tex('candle', col)
 
 # pastel, matte colours so everything reads like the soft painted reference
@@ -338,7 +338,55 @@ M_BASIL = make_mat('Basil', '#6a9e57', rough=0.8)
 M_OAT1 = make_mat('Oat', '#efdcb4', rough=0.9)
 M_OAT2 = make_mat('OatDark', '#e2c899', rough=0.9)
 M_NUT = make_mat('Hazelnut', '#c08250', rough=0.7, spec=0.15)
-M_PLATE = make_mat('Plate', '#fbf8f4', rough=0.55, spec=0.2)
+PLATE_R = 1.56           # outer radius of the lace edge (scallop tips)
+PLATE_N = 32             # number of lace scallops
+
+def plate_tex():
+    """White porcelain with a painted lavender garland and a lace border, mapped flat from above."""
+    n = 1024
+    lin_ = (np.arange(n) + 0.5) / n * 2 * PLATE_R - PLATE_R
+    x, y = np.meshgrid(lin_, lin_)
+    r = np.hypot(x, y)
+    a = np.arctan2(y, x)
+    col = lerp(C('#fdfbff'), C('#f1ecfa'), fbm(n, n, 6, 6, 4, 81) * 0.6 + sstep(0.9, 1.25, r) * 0.25)
+    lav, deep, sage = C('#b9a2e6'), C('#8d72cc'), C('#9db893')
+    def ring(r0, w, c, k=1.0):
+        nonlocal col
+        col = lerp(col, c, np.clip(1 - np.abs(r - r0) / w, 0, 1) ** 0.7 * k)
+    ring(1.13, 0.008, deep, 0.8)                         # fine line around the well
+    ring(1.165, 0.004, lav, 0.6)
+    # garland: one little five-petal flower per scallop, leaves and dots between them
+    seg = 2 * np.pi / PLATE_N
+    t = (a / seg) % 1 - 0.5                              # -0.5..0.5 within one scallop
+    du = t * seg * 1.36                                  # arc distance on the rim (approx.)
+    for cx_, cy_, rad, c, k in [(0, 1.33, 0.05, lav, 0.9), (0.5, 1.31, 0.018, deep, 0.7)]:
+        dx = (t - cx_ + 0.5) % 1 - 0.5
+        d = np.hypot(dx * seg * 1.33, r - cy_)
+        if rad > 0.03:
+            ang = np.arctan2(r - cy_, dx * seg * 1.33)
+            petal = rad * (0.62 + 0.38 * np.abs(np.cos(2.5 * ang)))
+            col = lerp(col, c, sstep(petal, petal * 0.75, d) * k)
+            col = lerp(col, C('#f6e7a6'), sstep(0.016, 0.01, d))
+        else:
+            col = lerp(col, c, sstep(rad, rad * 0.6, d) * k)
+    for side in (-1, 1):                                 # leaves either side of each flower
+        dx = t - side * 0.24
+        d = np.hypot(dx * seg * 1.33 / 0.045, (r - 1.335) / 0.016)
+        col = lerp(col, sage, sstep(1.0, 0.7, d) * 0.75)
+    # lace border: scalloped outline following the edge with eyelets
+    edge = 1.45 + 0.09 * np.abs(np.sin(np.pi * ((a / seg) % 1))) ** 0.55
+    ring_d = np.abs(r - (edge - 0.045))
+    col = lerp(col, deep, sstep(0.008, 0.003, ring_d) * 0.85)
+    eye = np.hypot(t * seg * 1.5, r - 1.465)
+    col = lerp(col, lav, sstep(0.024, 0.016, eye) * 0.9)
+    col = lerp(col, C('#fdfbff'), sstep(0.011, 0.006, eye))
+    for k in (-1, 1):
+        e2 = np.hypot((t - k * 0.3) * seg * 1.5, r - 1.49)
+        col = lerp(col, lav, sstep(0.01, 0.005, e2) * 0.8)
+    col = lerp(col, lav, sstep(0.01, 0.0, edge - r) * 0.55)    # tinted rim edge
+    return save_tex('plate', col)
+
+M_PLATE = make_mat('Plate', img=plate_tex(), rough=0.22, spec=0.5)
 M_CANDLE = make_mat('Candle', img=candle_tex(), rough=0.7)
 M_WICK = make_mat('Wick', '#4a3a30', rough=0.9)
 
@@ -534,9 +582,52 @@ for name, a0, a1, side_m, cut_m, seg in SLICES:
     slice_objs[name] = w
 
 # plate
-bpy.ops.mesh.primitive_cone_add(vertices=48, radius1=1.2, radius2=1.38, depth=0.06, location=(0, 0, -0.03))
-plate = finish(active(), M_PLATE, smooth=False)
-plate.name = 'Plate'
+# porcelain plate: flat well, rim that curves up into a fluted, scalloped lace edge
+def plate_mesh():
+    M = PLATE_N * 8
+    radii = [0.0, 0.3, 0.6, 0.85, 1.05, 1.12, 1.17, 1.22, 1.28, 1.34, 1.4, 1.46, 1.5, 1.53, 1.0]   # last = edge
+    verts, faces = [], []
+    for j in range(M):
+        th = 2 * math.pi * j / M
+        sc = abs(math.sin(math.pi * ((th / (2 * math.pi / PLATE_N)) % 1))) ** 0.55
+        edge = 1.45 + 0.09 * sc
+        for k, rr in enumerate(radii):
+            if k == len(radii) - 1:
+                rr = edge
+            else:
+                rr = min(rr, edge - 0.012 * (len(radii) - 1 - k))
+            lift = sstep(1.1, 1.3, rr) * 0.06 + max(0.0, rr - 1.3) * 0.12
+            flute = sstep(1.3, 1.5, rr) * 0.012 * math.cos(PLATE_N * th)
+            verts.append((rr * math.cos(th), rr * math.sin(th), float(lift + flute)))
+    nr = len(radii)
+    for j in range(M):
+        j2 = (j + 1) % M
+        for k in range(nr - 1):
+            faces.append((j * nr + k, j * nr + k + 1, j2 * nr + k + 1, j2 * nr + k))
+    me = bpy.data.meshes.new('Plate')
+    me.from_pydata(verts, [], faces)
+    o = link(bpy.data.objects.new('Plate', me))
+    bpy.ops.object.select_all(action='DESELECT')
+    o.select_set(True)
+    bpy.context.view_layer.objects.active = o
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.remove_doubles(threshold=1e-5)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    uv = me.uv_layers.new(name='UVMap')
+    for loop in me.loops:
+        v = me.vertices[loop.vertex_index].co
+        uv.data[loop.index].uv = (0.5 + v.x / (2 * PLATE_R), 0.5 + v.y / (2 * PLATE_R))
+    sol = o.modifiers.new('Thick', 'SOLIDIFY')
+    sol.thickness, sol.offset, sol.use_even_offset = 0.03, -1, True
+    bev = o.modifiers.new('Soft', 'BEVEL')
+    bev.width, bev.segments, bev.limit_method = 0.01, 2, 'ANGLE'
+    o.location = (0, 0, 0.0)
+    finish(o, M_PLATE)
+    bpy.ops.object.shade_smooth_by_angle(angle=math.radians(60))
+    return o
+
+plate = plate_mesh()
 plate.parent = cake_root
 
 # candle, wick, and an empty marking where the flame goes
@@ -586,11 +677,11 @@ scene.view_settings.view_transform = 'Standard'
 world = bpy.data.worlds.new('World')
 scene.world = world
 world.use_nodes = True
-world.node_tree.nodes['Background'].inputs['Color'].default_value = lin_color('#fbf4ee')
+world.node_tree.nodes['Background'].inputs['Color'].default_value = lin_color('#efe8fa')
 world.node_tree.nodes['Background'].inputs['Strength'].default_value = 1.15
 
 bpy.ops.mesh.primitive_plane_add(size=30, location=(0, 0, -0.061))
-finish(active(), make_mat('Floor', '#f8eee8', rough=0.9))
+finish(active(), make_mat('Floor', '#e9e0f7', rough=0.9))
 
 sun = bpy.data.lights.new('Sun', 'SUN')
 sun.energy = 1.9
