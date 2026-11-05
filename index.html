@@ -658,7 +658,7 @@ function layout() {
   root.setProperty('--hw', C * 0.7 + 'px');
 
   const big = Math.max(...chars.map(c => c.cfg.size * C * 0.8 * c.aspect));
-  const spread = Math.max(0, Math.min(vw / 2 - big / 2 - 6, 0.98 * C));
+  const spread = Math.max(0, Math.min(vw / 2 - big / 2 - 6, 0.62 * C));
   for (const ch of chars) {
     ch.h = ch.cfg.size * C * 0.8;
     ch.w = ch.h * ch.aspect;
