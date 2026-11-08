@@ -356,8 +356,8 @@ function patchMat(m, insideHex) {
 }
 
 async function initCake3D() {
-  THREE = await import('./lib/three/three.module.js');
-  const { GLTFLoader } = await import('./lib/three/addons/loaders/GLTFLoader.js');
+  THREE = await import('./lib/three-r162/three.module.js');
+  const { GLTFLoader } = await import('./lib/three-r162/addons/loaders/GLTFLoader.js');
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   // older phones (WebGL1) allow far fewer shader uniforms; leave ~60 for the lights and shadows
