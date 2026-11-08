@@ -275,7 +275,7 @@
 const CONFIG = {
   momName: 'Mom',
   finalMessage: 'Thank you for everything you do. We love you so, so much!',
-  signedBy: 'Love, me, sis & kitty 💕',
+  signedBy: 'Love, Kyla, Kylie, Che-mi 💕',
 
   audio: {
     song:  'assets/song-kyla.mp3',      // birthday song #1 (Kyla)
@@ -1137,11 +1137,14 @@ async function finale() {
   q('#cardMsg').textContent = CONFIG.finalMessage;
   q('#cardSig').textContent = CONFIG.signedBy;
   el.card.classList.add('show');
+  await sleep(900);                          // once the card is up, our birthday wishes play
+  await playClip('love1', () => null);
+  await sleep(400);
+  await playClip('love2', () => null);
 }
 // Two kissy faces were hiding behind the cake: they peek out as it disappears, rush up until they
 // fill the screen (side by side on wide screens, stacked on tall ones) — mwah! — then back off.
 async function kissMom() {
-  playClip('love1', () => null).then(() => sleep(400)).then(() => playClip('love2', () => null));
   const faces = [q('#kissMe'), q('#kissSis')];
   const { vw, vh, cx, cy, C } = L, wide = vw / vh >= 1;
   const s = C * 0.36;                                    // size while peeking from behind the cake
