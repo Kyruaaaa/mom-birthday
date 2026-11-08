@@ -167,6 +167,15 @@
   }
   @keyframes nom { from { opacity: 1; transform: translate(-50%, -50%) scale(.6); } to { opacity: 0; transform: translate(-50%, -190%) scale(1.15); } }
 
+  /* the two kiss faces: hidden behind the cake, then they rush up to the screen after it's eaten */
+  .kiss { position: fixed; left: 0; top: 0; z-index: 6; pointer-events: none; opacity: 0; will-change: transform;
+          filter: drop-shadow(0 10px 18px rgba(90,60,150,.28)); }
+  .kiss.front { z-index: 55; }
+  .mwah { position: fixed; z-index: 56; pointer-events: none; transform: translate(-50%, -50%);
+          animation: mwah 1.4s ease-out forwards; }
+  @keyframes mwah { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.3); } 20% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+                    100% { opacity: 0; transform: translate(-50%, -260%) scale(1); } }
+
   #card {
     position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px;
     opacity: 0; pointer-events: none; transition: opacity 1s;
@@ -195,6 +204,8 @@
 <div id="room"></div>
 <div id="chars"></div>
 
+<img class="kiss" id="kissMe" src="assets/kiss-me.png" alt="">
+<img class="kiss" id="kissSis" src="assets/kiss-sis.png" alt="">
 <div id="cake"></div>
 
 <div id="gift">
@@ -277,7 +288,7 @@ const CONFIG = {
   characters: [
     { src: 'assets/me.png',     fallback: '🙋‍♀️', size: 0.72, slot: -1,   delay: 0.0 },
     { src: 'assets/sister.png', fallback: '💃',   size: 0.72, slot:  1,   delay: 0.5 },
-    { src: 'assets/cat.png',    fallback: '🐈',   size: 0.40, slot: 0.55, delay: 1.0 },
+    { src: 'assets/cat.png',    fallback: '🐈',   size: 0.30, slot: 0.55, delay: 1.0 },
   ],
 
   blowSensitivity: 1.0,   // raise (e.g. 1.5) if the candle is hard to blow out, lower if it goes out too easily
@@ -1113,7 +1124,7 @@ async function finale() {
   hush();
   el.fork.style.transition = 'opacity .6s'; el.fork.style.opacity = 0;
   document.body.classList.remove('forking');
-  await sleep(700);
+  await kissMom();
   confettiRain(220);
   danceAmp = 1;
   chars.forEach(ch => { ch.state = 'dance'; ch.t0 = now; });
@@ -1122,9 +1133,54 @@ async function finale() {
   q('#cardSig').textContent = CONFIG.signedBy;
   el.card.classList.add('show');
 }
+// Two kissy faces were hiding behind the cake: they peek out as it disappears, rush up until they
+// fill the screen (side by side on wide screens, stacked on tall ones) — mwah! — then back off.
+async function kissMom() {
+  const faces = [q('#kissMe'), q('#kissSis')];
+  const { vw, vh, cx, cy, C } = L, wide = vw / vh >= 1;
+  const s = C * 0.36;                                    // size while peeking from behind the cake
+  const home = i => ({ x: cx + (i ? 1 : -1) * s * 0.55, y: cy - C * 0.16, k: 1, r: i ? 8 : -8 });
+  const big = wide ? Math.min(vw * 0.56, vh * 1.05) : Math.min(vw * 1.08, vh * 0.56);
+  const near = i => wide ? { x: vw * (i ? 0.73 : 0.27), y: vh * 0.5, k: big / s, r: i ? -4 : 4 }
+                         : { x: vw * 0.5, y: vh * (i ? 0.74 : 0.26), k: big / s, r: i ? 3 : -3 };
+  const tf = p => `translate(${p.x - s / 2}px, ${p.y - s / 2}px) rotate(${p.r}deg) scale(${p.k})`;
+  faces.forEach((f, i) => { f.style.width = f.style.height = s + 'px'; f.style.transform = tf({ ...home(i), y: home(i).y + s * 0.5 }); });
+  // peek up from behind as the cake fades away
+  await Promise.all(faces.map((f, i) => f.animate([
+    { opacity: 0, transform: tf({ ...home(i), y: home(i).y + s * 0.5 }) },
+    { opacity: 1, transform: tf(home(i)) }], { duration: 900, delay: 300 + i * 150, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'forwards' }).finished));
+  await sleep(450);
+  faces.forEach(f => f.classList.add('front'));
+  // rush toward the screen…
+  await Promise.all(faces.map((f, i) => f.animate([
+    { transform: tf(home(i)) },
+    { transform: tf({ ...home(i), k: 0.85, y: home(i).y + s * 0.06 }), offset: 0.25 },   // little wind-up
+    { transform: tf(near(i)) }], { duration: 1000, easing: 'cubic-bezier(.55,0,.75,.2)', fill: 'forwards' }).finished));
+  // …mwah!
+  faces.forEach((f, i) => f.animate([{ transform: tf(near(i)) }, { transform: tf({ ...near(i), k: near(i).k * 1.05 }) }, { transform: tf(near(i)) }],
+    { duration: 380, iterations: 2, easing: 'ease-in-out' }));
+  for (let n = 0; n < 9; n++) {
+    const m = document.createElement('div');
+    m.className = 'mwah';
+    m.textContent = n === 0 ? 'mwah!' : ['💋', '💕', '💗', '💖'][n % 4];
+    Object.assign(m.style, { left: (n === 0 ? vw / 2 : rand(0.12, 0.88) * vw) + 'px', top: (n === 0 ? vh * 0.5 : rand(0.2, 0.8) * vh) + 'px',
+      fontSize: (n === 0 ? C * 0.22 : C * rand(0.08, 0.14)) + 'px', fontWeight: 700, color: '#fff',
+      textShadow: '0 3px 0 #9a7ad6, 0 0 18px rgba(154,122,214,.8)', animationDelay: n * 70 + 'ms', opacity: 0 });
+    document.body.appendChild(m);
+    setTimeout(() => m.remove(), 1600 + n * 70);
+  }
+  await sleep(1300);
+  // …and back off to where the cake was
+  await Promise.all(faces.map((f, i) => f.animate([
+    { transform: tf(near(i)) }, { transform: tf(home(i)) }], { duration: 1000, easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }).finished));
+  faces.forEach(f => f.classList.remove('front'));
+  faces.forEach((f, i) => f.animate([{ transform: tf(home(i)) }, { transform: tf({ ...home(i), y: home(i).y - s * 0.06, r: home(i).r * -0.5 }) }],
+    { duration: 900, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out', delay: i * 200 }));
+}
+
 q('#replay').addEventListener('click', e => { e.stopPropagation(); location.reload(); });
 
-// ?scene=wish|blow|fork lets you jump ahead while you're testing
+// ?scene=wish|blow|fork|end lets you jump ahead while you're testing
 async function main() {
   try {
     await initCake3D();
@@ -1143,6 +1199,14 @@ async function main() {
     showCake(true);
     chars.forEach(ch => { ch.state = start > 1 ? 'idle' : 'hidden'; });
     if (start >= 2 && start <= 3) { el.dark.style.transition = 'none'; el.dark.style.opacity = 1; ignite(); }
+  }
+  if (params.get('scene') === 'end') {
+    await waitTap();
+    el.gift.style.display = 'none';
+    showCake(true);
+    chars.forEach(ch => { ch.state = 'idle'; });
+    await sleep(800);
+    return finale();
   }
   const steps = { gift: stepGift, song: stepSong, wish: stepWish, blow: stepBlow, lights: stepLights, fork: stepFork };
   for (const name of order.slice(start)) await steps[name]();
