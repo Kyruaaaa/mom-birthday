@@ -282,7 +282,12 @@ const CONFIG = {
     song2: 'assets/song-kylie.mp3',     // birthday song #2 (Kylie), plays right after
     love1: 'assets/love-kyla.mp3',      // Kyla's birthday wishes, played at the end
     love2: 'assets/love-kylie.mp3',     // Kylie's birthday wishes, right after
-    wish:  'assets/make-a-wish.mp3',    // "close your eyes and make a wish…"
+    wish:  'assets/wish.mp3',           // "make a wish" reminder
+    blow:  'assets/blow.mp3',           // "blow out the candle" reminder
+    eat:   'assets/eat-cake.mp3',       // "please eat the cake" reminder
+    munch: 'assets/munch.mp3',          // chewing, plays (1.5x speed) on every bite
+    kiss1: 'assets/kiss-kyla.mp3',      // the two kisses, played together
+    kiss2: 'assets/kiss-kylie.mp3',
     cheer: 'assets/cheer.mp3',          // optional: plays when the lights come back on
   },
   songBpm: 100,           // roughly how fast your song is; the dancing bounces to this beat
@@ -981,7 +986,11 @@ async function bite() {
     addBite3D(hit);
     fork.bites++;
     const inside = hit.obj.userData.inside;
-    sfxMunch();
+    const mu = clips.munch;
+    if (mu && !mu.failed) {                // her chewing sound, sped up; restarts on every bite
+      mu.pause(); mu.currentTime = 0; mu.playbackRate = 1.5; mu.muted = false;
+      const p = mu.play(); if (p) p.catch(() => sfxMunch());
+    } else sfxMunch();
     el.piece.classList.add('on');
     const floor = L.plateY + rand(-L.C * 0.03, L.C * 0.02);
     for (let i = 0; i < 16; i++)
@@ -1086,6 +1095,7 @@ async function stepWish() {
 
 async function stepBlow() {
   say('Now blow out the candle! 🌬️', 'Blow toward the microphone');
+  await playClip('blow', () => null);      // finish the reminder first so the mic doesn't hear it
   const ok = await startMic();
   if (!ok) saySub('(or press and hold anywhere on the screen to blow)');
   F.canBlow = true;
@@ -1110,6 +1120,7 @@ async function stepLights() {
 
 async function stepFork() {
   say('Grab the fork & take a bite! 🍴', 'Tap or click the cake', true);
+  playClip('eat', () => null);
   cake3d.spin = false;                       // hold still so the bites stay where she put them
   if (cake3d.ready) sampleCake();
   fork.on = true;
@@ -1166,8 +1177,9 @@ async function kissMom() {
     { transform: tf({ ...home(i), k: 0.85, y: home(i).y + s * 0.06 }), offset: 0.25 },   // little wind-up
     { transform: tf(near(i)) }], { duration: 1000, easing: 'cubic-bezier(.55,0,.75,.2)', fill: 'forwards' }).finished));
   // …mwah!
+  playClip('kiss1', () => null); playClip('kiss2', () => null);
   faces.forEach((f, i) => f.animate([{ transform: tf(near(i)) }, { transform: tf({ ...near(i), k: near(i).k * 1.05 }) }, { transform: tf(near(i)) }],
-    { duration: 380, iterations: 2, easing: 'ease-in-out' }));
+    { duration: 380, iterations: 6, easing: 'ease-in-out' }));
   for (let n = 0; n < 9; n++) {
     const m = document.createElement('div');
     m.className = 'mwah';
@@ -1178,7 +1190,7 @@ async function kissMom() {
     document.body.appendChild(m);
     setTimeout(() => m.remove(), 1600 + n * 70);
   }
-  await sleep(1300);
+  await sleep(2400);
   // …and back off to where the cake was
   await Promise.all(faces.map((f, i) => f.animate([
     { transform: tf(near(i)) }, { transform: tf(home(i)) }], { duration: 1000, easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }).finished));
