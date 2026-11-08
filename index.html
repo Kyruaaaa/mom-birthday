@@ -278,17 +278,21 @@ const CONFIG = {
   signedBy: 'Love, me, sis & kitty 💕',
 
   audio: {
-    song:  'assets/birthday-song.mp3',  // your recorded birthday song
+    song:  'assets/song-kyla.mp3',      // birthday song #1 (Kyla)
+    song2: 'assets/song-kylie.mp3',     // birthday song #2 (Kylie), plays right after
+    love1: 'assets/love-kyla.mp3',      // Kyla's birthday wishes, played at the end
+    love2: 'assets/love-kylie.mp3',     // Kylie's birthday wishes, right after
     wish:  'assets/make-a-wish.mp3',    // "close your eyes and make a wish…"
     cheer: 'assets/cheer.mp3',          // optional: plays when the lights come back on
   },
   songBpm: 100,           // roughly how fast your song is; the dancing bounces to this beat
 
-  // size = height as a fraction of the cake, slot = -1 (far left) … 1 (far right)
+  // size = height as a fraction of the cake, slot = -1 (far left) … 1 (far right),
+  // lift = how far back (higher up) they stand behind the cake, as a fraction of the cake
   characters: [
-    { src: 'assets/me.png',     fallback: '🙋‍♀️', size: 0.72, slot: -1,   delay: 0.0 },
-    { src: 'assets/sister.png', fallback: '💃',   size: 0.72, slot:  1,   delay: 0.5 },
-    { src: 'assets/cat.png',    fallback: '🐈',   size: 0.30, slot: 0.55, delay: 1.0 },
+    { src: 'assets/me.png',     fallback: '🙋‍♀️', size: 0.98, slot: -1,   delay: 0.0 },
+    { src: 'assets/sister.png', fallback: '💃',   size: 0.98, slot:  1,   delay: 0.5 },
+    { src: 'assets/cat.png',    fallback: '🐈',   size: 0.34, slot: 0.42, delay: 1.0, lift: 0.2 },
   ],
 
   blowSensitivity: 1.0,   // raise (e.g. 1.5) if the candle is hard to blow out, lower if it goes out too easily
@@ -668,15 +672,16 @@ function layout() {
   root.setProperty('--fh', C * 0.12 + 'px');
   root.setProperty('--hw', C * 0.7 + 'px');
 
-  const big = Math.max(...chars.map(c => c.cfg.size * C * 0.8 * c.aspect));
-  const spread = Math.max(0, Math.min(vw / 2 - big / 2 - 6, 0.62 * C));
+  const spread = 0.62 * C;
   for (const ch of chars) {
     ch.h = ch.cfg.size * C * 0.8;
     ch.w = ch.h * ch.aspect;
     let x = ch.cfg.slot * spread;
     const minAbs = 0.3 * C + ch.w * 0.3;               // don't hide completely behind the cake
     if (Math.abs(x) < minAbs) x = Math.sign(ch.cfg.slot || 1) * minAbs;
-    ch.targetX = clamp(x, -(vw / 2 - ch.w * 0.35), vw / 2 - ch.w * 0.35);
+    const edge = Math.max(0, vw / 2 - ch.w * 0.42);        // keep them on screen
+    ch.targetX = clamp(x, -edge, edge);
+    ch.el.style.bottom = (ch.cfg.lift || 0) * C + 'px';
     ch.el.style.left = cx + 'px';
     ch.el.style.height = ch.h + 'px';
     if (ch.ph) ch.ph.style.fontSize = ch.h * 0.85 + 'px';
@@ -1062,7 +1067,7 @@ async function stepSong() {
   await sleep(1900);
   ignite();
   await sleep(1100);
-  const song = playClip('song', synthSong);
+  const song = playClip('song', synthSong).then(() => playClip('song2', () => null));
   await sleep(500);
   chars.forEach(ch => setTimeout(() => { ch.state = 'walk'; ch.t0 = now; }, ch.cfg.delay * 1000));
   await song;
@@ -1136,6 +1141,7 @@ async function finale() {
 // Two kissy faces were hiding behind the cake: they peek out as it disappears, rush up until they
 // fill the screen (side by side on wide screens, stacked on tall ones) — mwah! — then back off.
 async function kissMom() {
+  playClip('love1', () => null).then(() => sleep(400)).then(() => playClip('love2', () => null));
   const faces = [q('#kissMe'), q('#kissSis')];
   const { vw, vh, cx, cy, C } = L, wide = vw / vh >= 1;
   const s = C * 0.36;                                    // size while peeking from behind the cake
