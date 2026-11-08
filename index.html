@@ -4,8 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>Happy Birthday, Mom!</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+<link href="lib/fonts/fonts.css" rel="stylesheet">
 <style>
   :root {
     --lav: #9a7ad6;
@@ -260,8 +259,8 @@
 
 <script type="importmap">
   { "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }
+      "three": "./lib/three/three.module.js",
+      "three/addons/": "./lib/three/addons/" } }
 </script>
 <!-- the 3D cake (made by model/build_cake.py), wrapped in JS so it also loads when opened straight from disk -->
 <script src="assets/cake-glb.js"></script>
