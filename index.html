@@ -257,11 +257,6 @@
 
 <div id="meter">mic level<div class="bar"><i id="mLevel"></i></div>blow progress<div class="bar"><i id="mAcc"></i></div><span id="mText"></span></div>
 
-<script type="importmap">
-  { "imports": {
-      "three": "./lib/three/three.module.js",
-      "three/addons/": "./lib/three/addons/" } }
-</script>
 <!-- the 3D cake (made by model/build_cake.py), wrapped in JS so it also loads when opened straight from disk -->
 <script src="assets/cake-glb.js"></script>
 <script>
@@ -325,7 +320,8 @@ let now = 0;         // seconds, updated every frame
 /* ---------------- 3D cake ---------------- */
 // Bites are spheres where the cake surface is cut away; the inside of the cake shows through
 // (back faces get painted in the slice's "inside" colour, so a bite looks like solid cake).
-const MAXB = 112, SPHERES_PER_BITE = 7, MAX_BITES = MAXB / SPHERES_PER_BITE;
+const SPHERES_PER_BITE = 7;
+let MAXB = 112, MAX_BITES = MAXB / SPHERES_PER_BITE;   // shrunk in initCake3D on phones with small shader limits
 const INSIDE = { Pizza: '#f2dfae', Oat: '#f6e6b8', Waffle: '#f8eed6', Basque: '#f6dc96' };
 const cake3d = { ready: false, spin: true, rotY: -0.75, fade: 0, bites: 0, samples: [] };
 let THREE, renderer, scene, camera, cakeRoot, flameAnchor, candleLight, raycaster;
@@ -360,11 +356,15 @@ function patchMat(m, insideHex) {
 }
 
 async function initCake3D() {
-  THREE = await import('three');
-  const { GLTFLoader } = await import('three/addons/loaders/GLTFLoader.js');
-  biteSpheres.value = Array.from({ length: MAXB }, () => new THREE.Vector4());
+  THREE = await import('./lib/three/three.module.js');
+  const { GLTFLoader } = await import('./lib/three/addons/loaders/GLTFLoader.js');
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  // older phones (WebGL1) allow far fewer shader uniforms; leave ~60 for the lights and shadows
+  const room = Math.floor((renderer.capabilities.maxFragmentUniforms - 60) / SPHERES_PER_BITE) * SPHERES_PER_BITE;
+  MAXB = Math.max(SPHERES_PER_BITE * 2, Math.min(112, room));
+  MAX_BITES = MAXB / SPHERES_PER_BITE;
+  biteSpheres.value = Array.from({ length: MAXB }, () => new THREE.Vector4());
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NeutralToneMapping;
   renderer.shadowMap.enabled = true;
@@ -1011,7 +1011,7 @@ async function bite() {
   el.forkInner.classList.remove('lift');
   await sleep(80);
   fork.busy = false;
-  if ((cakeLeft() < 0.45 || cake3d.bites >= MAX_BITES - 2) && !fork.finished) finale();
+  if ((cakeLeft() < 0.45 || cake3d.bites >= Math.max(1, MAX_BITES - 2)) && !fork.finished) finale();
 }
 
 /* ---------------- input ---------------- */
@@ -1206,7 +1206,7 @@ async function main() {
     await initCake3D();
   } catch (e) {
     console.error(e);
-    say('The 3D cake could not load 😢', 'Check your internet connection and reload', true);
+    say('The 3D cake could not load 😢', 'Try opening the link in Safari or Chrome · ' + String(e && e.message || e).slice(0, 120), true);
   }
   layout();
   requestAnimationFrame(frame);
